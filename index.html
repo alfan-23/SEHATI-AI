@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Portal Aplikasi Adminkes</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .menu {
+      background: #2c3e50;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .menu button {
+      background: #3498db;
+      border: none;
+      padding: 10px 15px;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .menu button:hover {
+      background: #2980b9;
+    }
+    iframe {
+      width: 100%;
+      height: calc(100vh - 50px);
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="menu">
+  <button onclick="loadPage('https://alfan-23.github.io/Profil_IMP/')">
+    Profil Indikator Mutu
+  </button>
+  <button onclick="loadPage('https://alfan-23.github.io/Manrisk/')">
+    Manajemen Risiko
+  </button>
+</div>
+
+<iframe id="frame" src="https://alfan-23.github.io/Profil_IMP/"></iframe>
+
+<script>
+  function loadPage(url) {
+    document.getElementById('frame').src = url;
+  }
+</script>
+
+</body>
+</html>
