@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard SEHATI - AI | alfan-23</title>
+    
+    <script>
+        (function() {
+            const allowedDomain = "alfan-23.github.io";
+            const currentDomain = window.location.hostname;
+            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1") {
+                document.documentElement.innerHTML = `<div style="text-align:center; margin-top:20%;"><h1>LISENSI TIDAK VALID</h1></div>`;
+                throw new Error("Unauthorized Access");
+            }
+            if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1") {
+                window.location.href = 'index.html';
+            }
+        })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { navy: '#1e293b', skyblue: '#38bdf8' },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden">
+
+    <aside class="w-64 bg-navy text-white flex flex-col shadow-xl z-20">
+        <div class="p-6 border-b border-slate-700 flex items-center gap-3">
+            <div class="w-10 h-10 bg-skyblue rounded-lg flex items-center justify-center font-bold text-navy text-xl">
+                <i class="fa-solid fa-hospital"></i>
+            </div>
+            <div>
+                <h2 class="font-bold text-lg leading-tight text-skyblue">SEHATI - AI</h2>
+                <p class="text-[8px] text-slate-400 uppercase tracking-tighter">Sistem Administrasi Kesehatan Terpadu</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-4 space-y-2">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 px-3">Modul Utama</p>
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition text-left">
+                <i class="fa-solid fa-chart-line w-5 text-skyblue"></i> Profil IMP
+            </button>
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition text-left">
+                <i class="fa-solid fa-triangle-exclamation w-5 text-skyblue"></i> Manajemen Risiko
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-700">
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition text-sm">
+                <i class="fa-solid fa-right-from-bracket"></i> Keluar
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full bg-slate-100">
+        <header class="bg-white border-b border-slate-200 px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-4 z-10 shadow-sm">
+            <div class="flex items-center gap-2 text-slate-800">
+                <i class="fa-solid fa-key text-amber-500"></i>
+                <h1 class="font-bold text-sm uppercase">API Management</h1>
+                <span id="activeIndicator" class="ml-2 text-[10px] font-bold px-3 py-1 bg-green-100 text-green-700 rounded-full border border-green-200">Slot 1 Aktif</span>
+            </div>
+            
+            <div class="flex flex-1 max-w-2xl gap-2">
+                <input type="password" id="api_key_0" class="w-1/4 text-[10px] px-3 py-2 border border-slate-300 rounded outline-none" placeholder="Primary Key">
+                <input type="password" id="api_key_1" class="w-1/4 text-[10px] px-3 py-2 border border-slate-300 rounded outline-none" placeholder="Backup 1">
+                <input type="password" id="api_key_2" class="w-1/4 text-[10px] px-3 py-2 border border-slate-300 rounded outline-none" placeholder="Backup 2">
+                <input type="password" id="api_key_3" class="w-1/4 text-[10px] px-3 py-2 border border-slate-300 rounded outline-none" placeholder="Backup 3">
+            </div>
+        </header>
+
+        <div class="flex-1 p-4 relative">
+            <div id="welcomeScreen" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+                <i class="fa-solid fa-microchip text-7xl mb-4 opacity-10"></i>
+                <h2 class="text-xl font-bold text-slate-500 tracking-tight">SEHATI - AI</h2>
+                <p class="text-xs mt-1">Silakan pilih modul aplikasi untuk memulai analisis cerdas.</p>
+            </div>
+            <iframe id="appFrame" class="w-full h-full bg-white rounded-xl shadow-inner border border-slate-200 hidden" src="about:blank"></iframe>
+        </div>
+    </main>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbz45tKwXC2c1bdEDDWd-97sF8KJweuNPlLvVUAYrGW_m8U2-3yorbaeaYemuFLnX9c4/exec";
+        let currentKeyIndex = 0;
+        const totalKeys = 4;
+        let lastLoadedUrl = "";
+
+        function getActiveApiKey() {
+            const input = document.getElementById(`api_key_${currentKeyIndex}`);
+            return input ? input.value.trim() : "";
+        }
+
+        function rotateApiKey() {
+            currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
+            const indicator = document.getElementById('activeIndicator');
+            indicator.innerText = `Slot ${currentKeyIndex + 1} Aktif`;
+            if (lastLoadedUrl) loadApp(lastLoadedUrl);
+        }
+
+        function loadApp(repoUrl) {
+            const activeKey = getActiveApiKey();
+            if (!activeKey) {
+                alert("Mohon isi minimal API Key Slot 1.");
+                return;
+            }
+            lastLoadedUrl = repoUrl;
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            const iframe = document.getElementById('appFrame');
+            iframe.classList.remove('hidden');
+            iframe.src = `${repoUrl}?key=${encodeURIComponent(activeKey)}`;
+        }
+
+        window.addEventListener('message', async (event) => {
+            if (!event.data || !event.data.type) return;
+            if (event.data.type === 'API_ERROR' && event.data.code === 429) {
+                rotateApiKey();
+            }
+        });
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
