@@ -116,10 +116,14 @@
                 <ol class="space-y-4 text-sm text-slate-600 list-decimal pl-4 font-medium">
                     <li>Kunjungi situs resmi <b>Google AI Studio</b>.</li>
                     <li>Login menggunakan <b>Akun Google</b> Anda.</li>
-                    <li>Klik <b>"Get API key"</b> lalu <b>"Create API key"</b>.</li>
-                    <li>Salin kode kunci dan tempelkan ke <b>Slot 1</b> di Dashboard ini.</li>
+                    <li>Klik tombol biru bertuliskan <b>"Get API key"</b> di menu sebelah kiri.</li>
+                    <li>Klik tombol <b>"Create API key"</b>, lalu salin (copy) kode kunci yang muncul.</li>
+                    <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
                 </ol>
-                <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4">Saya Mengerti</button>
+                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
+                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan agar aplikasi tetap berjalan saat kuota harian kunci utama habis.</p>
+                </div>
+                <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
             </div>
         </div>
     </div>
@@ -127,7 +131,6 @@
     <script>
         let currentKeyIndex = 0;
         const totalKeys = 4;
-        let lastLoadedUrl = "";
 
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
@@ -152,7 +155,7 @@
         function saveAndConnect() {
             if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
             updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-green-500/20 text-green-400 border-green-500/30");
-            alert("API Key berjaya disambungkan.");
+            alert("API Key berhasil disambungkan.");
         }
 
         function rotateApiKey() {
@@ -165,20 +168,24 @@
 
             if(found) {
                 updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-amber-500/20 text-amber-400 border-amber-500/30");
-                const frame = document.getElementById('appFrame');
-                if (frame && frame.contentWindow) {
-                    frame.contentWindow.postMessage({ type: 'UPDATE_API_KEY', key: getActiveApiKey() }, '*');
-                }
+                sendKeyToApp();
             } else {
                 updateStatusUI(`OFFLINE`, "bg-red-500/20 text-red-400 border-red-500/30");
-                alert("❌ Semua API Key kehabisan kuota.");
+                alert("❌ Semua API Key kehabisan kuota atau kosong. Silakan masukkan kunci baharu.");
+            }
+        }
+
+        function sendKeyToApp() {
+            const frame = document.getElementById('appFrame');
+            const key = getActiveApiKey();
+            if (frame && frame.contentWindow && key) {
+                frame.contentWindow.postMessage({ type: 'UPDATE_API_KEY', key: key }, '*');
             }
         }
 
         function loadApp(url) {
             const key = getActiveApiKey();
-            if(!key) { alert("Isi API Key dahulu!"); return; }
-            lastLoadedUrl = url;
+            if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
             if(window.innerWidth < 768) toggleSidebar(); 
             document.getElementById('welcomeScreen').classList.add('hidden');
             const frame = document.getElementById('appFrame');
@@ -189,15 +196,12 @@
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
             
-            // FITUR HANDSHAKE: Dashboard merespon permintaan kunci dari aplikasi anak
             if (event.data.type === 'REQUEST_API_KEY') {
-                const key = getActiveApiKey();
-                if (key && event.source) {
-                    event.source.postMessage({ type: 'UPDATE_API_KEY', key: key }, event.origin);
-                }
+                sendKeyToApp();
             }
 
             if (event.data.type === 'API_ERROR' && event.data.code === 429) {
+                console.warn("Menerima isyarat Kuota Penuh. Melakukan rotasi otomatis...");
                 rotateApiKey();
             }
         });
