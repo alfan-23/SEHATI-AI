@@ -23,22 +23,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { navy: '#1e293b', skyblue: '#38bdf8' },
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { colors: { navy: '#1e293b', skyblue: '#38bdf8' }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
     </script>
     <style>
-        @media (max-width: 768px) {
-            .sidebar-closed { transform: translateX(-100%); }
-            .sidebar-open { transform: translateX(0); }
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media (max-width: 768px) { .sidebar-closed { transform: translateX(-100%); } .sidebar-open { transform: translateX(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-100 h-screen flex overflow-hidden">
@@ -47,39 +36,27 @@
         
         <div class="p-5 border-b border-slate-700 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-skyblue rounded-lg flex items-center justify-center font-bold text-navy">
-                    <i class="fa-solid fa-brain"></i>
-                </div>
+                <div class="w-8 h-8 bg-skyblue rounded-lg flex items-center justify-center font-bold text-navy"><i class="fa-solid fa-brain"></i></div>
                 <div>
                     <h2 class="font-bold text-lg text-skyblue leading-tight">SEHATI - AI</h2>
                     <span id="statusIndicator" class="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold uppercase border border-red-500/30">Offline</span>
                 </div>
             </div>
-            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
 
         <div class="p-4 bg-slate-800/40 border-b border-slate-700">
             <div class="flex justify-between items-center mb-3">
-                <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest">
-                    <i class="fa-solid fa-key mr-1"></i> Rotasi API Key
-                </label>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1 transition-colors" title="Dapatkan API Key Gratis">
-                    <i class="fa-solid fa-circle-info"></i> Info
-                </a>
+                <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest"><i class="fa-solid fa-key mr-1"></i> Rotasi API Key</label>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Info</a>
             </div>
-            
             <div class="space-y-2 mb-4">
                 <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
                 <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
                 <input type="password" id="api_key_2" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 3 (Cadangan 2)">
                 <input type="password" id="api_key_3" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 4 (Cadangan 3)">
             </div>
-            
-            <button onclick="saveAndConnect()" class="w-full py-2 bg-skyblue/10 border border-skyblue/30 text-skyblue rounded-lg text-[10px] font-bold uppercase hover:bg-skyblue hover:text-navy transition-all">
-                Simpan & Hubungkan
-            </button>
+            <button onclick="saveAndConnect()" class="w-full py-2 bg-skyblue/10 border border-skyblue/30 text-skyblue rounded-lg text-[10px] font-bold uppercase hover:bg-skyblue hover:text-navy transition-all">Simpan & Hubungkan</button>
         </div>
 
         <nav class="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
@@ -102,9 +79,7 @@
     <main class="flex-1 flex flex-col min-w-0 h-full">
         <header class="bg-navy border-b border-slate-700 px-4 py-3 flex items-center justify-between z-30 md:hidden">
             <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar()" class="p-2 text-skyblue bg-slate-800 rounded-lg">
-                    <i class="fa-solid fa-bars text-lg"></i>
-                </button>
+                <button onclick="toggleSidebar()" class="p-2 text-skyblue bg-slate-800 rounded-lg"><i class="fa-solid fa-bars text-lg"></i></button>
                 <span class="font-bold text-white text-sm">SEHATI - AI</span>
             </div>
             <div id="mobileStatusIndicator" class="text-[8px] bg-red-500/20 text-red-400 px-2 py-1 rounded-full font-bold uppercase border border-red-500/30">OFFLINE</div>
@@ -114,9 +89,7 @@
             <div id="welcomeScreen" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
                 <div class="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-6 border-4 border-slate-100 relative">
                     <i class="fa-solid fa-robot text-4xl text-slate-300"></i>
-                    <div class="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center animate-bounce shadow">
-                        <i class="fa-solid fa-key text-[10px] text-white"></i>
-                    </div>
+                    <div class="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center animate-bounce shadow"><i class="fa-solid fa-key text-[10px] text-white"></i></div>
                 </div>
                 <h2 class="text-2xl font-bold text-navy tracking-tight mb-2">Sistem AI Menunggu Konfigurasi</h2>
                 <p class="text-slate-500 text-sm max-w-sm">Isi minimal <b>Slot 1 (Key Utama)</b> di menu samping kiri, klik <b>Simpan & Hubungkan</b>, lalu pilih modul aplikasi.</p>
@@ -132,90 +105,69 @@
 
         function toggleSidebar() {
             const sb = document.getElementById('sidebar');
-            sb.classList.toggle('sidebar-closed');
-            sb.classList.toggle('sidebar-open');
+            sb.classList.toggle('sidebar-closed'); sb.classList.toggle('sidebar-open');
         }
 
-        // Ambil key yang aktif sesuai urutan slot saat ini
         function getActiveApiKey() {
             const input = document.getElementById(`api_key_${currentKeyIndex}`);
             return input ? input.value.trim() : "";
         }
 
         function updateStatusUI(statusText, colorClass) {
-            const ind1 = document.getElementById('statusIndicator');
-            const ind2 = document.getElementById('mobileStatusIndicator');
-            ind1.innerText = statusText;
-            ind2.innerText = statusText;
+            const ind1 = document.getElementById('statusIndicator'); const ind2 = document.getElementById('mobileStatusIndicator');
+            ind1.innerText = statusText; ind2.innerText = statusText;
             ind1.className = `text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${colorClass}`;
             ind2.className = `text-[8px] px-2 py-1 rounded-full font-bold uppercase border ${colorClass}`;
         }
 
         function saveAndConnect() {
-            if(!getActiveApiKey()) {
-                alert("Mohon isi minimal API Key Utama (Slot 1).");
-                return;
-            }
+            if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
             updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-green-500/20 text-green-400 border-green-500/30");
-            alert("API Key berhasil disambungkan. Silakan pilih modul aplikasi.");
+            alert("API Key berjaya disambungkan. Sila pilih modul aplikasi.");
         }
 
-        // Logika Rotasi Otomatis jika Key Terkena Limit (429)
         function rotateApiKey() {
-            let attempts = 0;
-            let found = false;
-            
+            let attempts = 0; let found = false;
             while(attempts < totalKeys) {
                 currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
-                if(getActiveApiKey()) {
-                    found = true;
-                    break;
-                }
+                if(getActiveApiKey()) { found = true; break; }
                 attempts++;
             }
 
             if(found) {
                 updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-amber-500/20 text-amber-400 border-amber-500/30");
-                alert(`⚠️ Kuota Limit Tercapai! Sistem otomatis berpindah ke API Key Slot ${currentKeyIndex + 1}.`);
-                if (lastLoadedUrl) loadApp(lastLoadedUrl); // Reload iframe dengan key baru
+                
+                // SUNTIKAN SENYAP (Tidak memuat semula iframe)
+                const frame = document.getElementById('appFrame');
+                if (frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({ type: 'UPDATE_API_KEY', key: getActiveApiKey() }, '*');
+                }
             } else {
                 updateStatusUI(`OFFLINE`, "bg-red-500/20 text-red-400 border-red-500/30");
-                alert("❌ Semua API Key (Utama & Cadangan) kosong atau telah mencapai limit. Silakan tambahkan Key baru.");
+                alert("❌ Semua API Key kehabisan kuota atau kosong. Sila masukkan kunci baharu.");
             }
         }
 
         function loadApp(url) {
             const key = getActiveApiKey();
-            
-            if(!key) { 
-                alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' terlebih dahulu."); 
-                return; 
-            }
-            
+            if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
             lastLoadedUrl = url;
             if(window.innerWidth < 768) toggleSidebar(); 
-            
             document.getElementById('welcomeScreen').classList.add('hidden');
             const frame = document.getElementById('appFrame');
             frame.classList.remove('hidden');
-            
-            // Masukkan key ke parameter URL iframe
             frame.src = `${url}?key=${encodeURIComponent(key)}`;
         }
 
-        // Pendengar Pesan Error (Limit 429) dari dalam iframe aplikasi IMP/Manrisk
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
             if (event.data.type === 'API_ERROR' && event.data.code === 429) {
-                console.warn("Menerima sinyal Error 429. Melakukan rotasi API Key...");
+                console.warn("Menerima isyarat Kuota Penuh. Melakukan rotasi...");
                 rotateApiKey();
             }
         });
 
-        function logout() {
-            sessionStorage.clear();
-            window.location.href = 'index.html';
-        }
+        function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
