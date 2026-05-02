@@ -65,14 +65,14 @@
         <nav class="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-3">Modul Aplikasi</p>
             
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
                 <i class="fa-solid fa-file-signature w-5 group-hover:scale-110 transition"></i> SK-Generator
             </button>
 
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
                 <i class="fa-solid fa-chart-line w-5 group-hover:scale-110 transition"></i> Profil IMP
             </button>
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
                 <i class="fa-solid fa-shield-virus w-5 group-hover:scale-110 transition"></i> Manajemen Risiko
             </button>
         </nav>
@@ -114,16 +114,12 @@
             </div>
             <div class="p-8 space-y-4">
                 <ol class="space-y-4 text-sm text-slate-600 list-decimal pl-4 font-medium">
-                    <li>Kunjungi situs resmi <b>Google AI Studio</b> melalui link "Link" di sidebar atau <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline font-bold">klik di sini</a>.</li>
-                    <li>Login menggunakan <b>Akun Google</b> pribadi atau fasyankes Anda.</li>
-                    <li>Klik tombol biru bertuliskan <b>"Get API key"</b> di menu sebelah kiri.</li>
-                    <li>Klik tombol <b>"Create API key"</b>, lalu salin (copy) kode kunci yang muncul (biasanya diawali huruf 'AIza').</li>
-                    <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
+                    <li>Kunjungi situs resmi <b>Google AI Studio</b>.</li>
+                    <li>Login menggunakan <b>Akun Google</b> Anda.</li>
+                    <li>Klik <b>"Get API key"</b> lalu <b>"Create API key"</b>.</li>
+                    <li>Salin kode kunci dan tempelkan ke <b>Slot 1</b> di Dashboard ini.</li>
                 </ol>
-                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
-                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan agar aplikasi tetap berjalan saat kuota harian kunci utama habis.</p>
-                </div>
-                <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
+                <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4">Saya Mengerti</button>
             </div>
         </div>
     </div>
@@ -156,7 +152,7 @@
         function saveAndConnect() {
             if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
             updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-green-500/20 text-green-400 border-green-500/30");
-            alert("API Key berjaya disambungkan. Sila pilih modul aplikasi.");
+            alert("API Key berjaya disambungkan.");
         }
 
         function rotateApiKey() {
@@ -175,13 +171,13 @@
                 }
             } else {
                 updateStatusUI(`OFFLINE`, "bg-red-500/20 text-red-400 border-red-500/30");
-                alert("❌ Semua API Key kehabisan kuota atau kosong. Sila masukkan kunci baharu.");
+                alert("❌ Semua API Key kehabisan kuota.");
             }
         }
 
         function loadApp(url) {
             const key = getActiveApiKey();
-            if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
+            if(!key) { alert("Isi API Key dahulu!"); return; }
             lastLoadedUrl = url;
             if(window.innerWidth < 768) toggleSidebar(); 
             document.getElementById('welcomeScreen').classList.add('hidden');
@@ -192,8 +188,16 @@
 
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
+            
+            // FITUR HANDSHAKE: Dashboard merespon permintaan kunci dari aplikasi anak
+            if (event.data.type === 'REQUEST_API_KEY') {
+                const key = getActiveApiKey();
+                if (key && event.source) {
+                    event.source.postMessage({ type: 'UPDATE_API_KEY', key: key }, event.origin);
+                }
+            }
+
             if (event.data.type === 'API_ERROR' && event.data.code === 429) {
-                console.warn("Menerima isyarat Kuota Penuh. Melakukan rotasi...");
                 rotateApiKey();
             }
         });
