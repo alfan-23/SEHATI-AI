@@ -48,7 +48,10 @@
         <div class="p-4 bg-slate-800/40 border-b border-slate-700">
             <div class="flex justify-between items-center mb-3">
                 <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest"><i class="fa-solid fa-key mr-1"></i> Rotasi API Key</label>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Info</a>
+                <div class="flex gap-2">
+                    <button onclick="showApiKeyGuide()" class="text-[9px] text-amber-400 hover:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-circle-question"></i> Panduan</button>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Link</a>
+                </div>
             </div>
             <div class="space-y-2 mb-4">
                 <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
@@ -61,6 +64,11 @@
 
         <nav class="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
             <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-3">Modul Aplikasi</p>
+            
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
+                <i class="fa-solid fa-file-signature w-5 group-hover:scale-110 transition"></i> SK-Generator
+            </button>
+
             <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
                 <i class="fa-solid fa-chart-line w-5 group-hover:scale-110 transition"></i> Profil IMP
             </button>
@@ -98,6 +106,28 @@
         </div>
     </main>
 
+    <div id="guideModal" class="hidden fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="bg-navy p-6 text-white flex justify-between items-center">
+                <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-400"></i> Cara Mendapatkan API Key</h3>
+                <button onclick="closeGuide()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 space-y-4">
+                <ol class="space-y-4 text-sm text-slate-600 list-decimal pl-4 font-medium">
+                    <li>Kunjungi situs resmi <b>Google AI Studio</b> melalui link "Link" di sidebar atau <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-600 underline font-bold">klik di sini</a>.</li>
+                    <li>Login menggunakan <b>Akun Google</b> pribadi atau fasyankes Anda.</li>
+                    <li>Klik tombol biru bertuliskan <b>"Get API key"</b> di menu sebelah kiri.</li>
+                    <li>Klik tombol <b>"Create API key"</b>, lalu salin (copy) kode kunci yang muncul (biasanya diawali huruf 'AIza').</li>
+                    <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
+                </ol>
+                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
+                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan agar aplikasi tetap berjalan saat kuota harian kunci utama habis.</p>
+                </div>
+                <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentKeyIndex = 0;
         const totalKeys = 4;
@@ -107,6 +137,9 @@
             const sb = document.getElementById('sidebar');
             sb.classList.toggle('sidebar-closed'); sb.classList.toggle('sidebar-open');
         }
+
+        function showApiKeyGuide() { document.getElementById('guideModal').classList.remove('hidden'); }
+        function closeGuide() { document.getElementById('guideModal').classList.add('hidden'); }
 
         function getActiveApiKey() {
             const input = document.getElementById(`api_key_${currentKeyIndex}`);
@@ -136,8 +169,6 @@
 
             if(found) {
                 updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-amber-500/20 text-amber-400 border-amber-500/30");
-                
-                // SUNTIKAN SENYAP (Tidak memuat semula iframe)
                 const frame = document.getElementById('appFrame');
                 if (frame && frame.contentWindow) {
                     frame.contentWindow.postMessage({ type: 'UPDATE_API_KEY', key: getActiveApiKey() }, '*');
