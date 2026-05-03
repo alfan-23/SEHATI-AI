@@ -54,7 +54,7 @@
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Link</a>
                 </div>
             </div>
-            <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem akan merotasi Kunci dan mencoba ulang dengan Model Cadangan otomatis jika terjadi kegagalan.</p>
+            <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem akan memutar semua Slot API Key pada Model utama. Jika gagal, akan turun ke Model cadangan otomatis.</p>
             <div class="space-y-2 mb-4">
                 <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
                 <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
@@ -127,7 +127,7 @@
                     <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
                 </ol>
                 <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
-                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan. Sistem secara otomatis mengganti kunci, dan jika gagal semua, menurunkan Model AI ke versi ringan agar tetap berjalan.</p>
+                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan. Sistem secara otomatis mencoba semua kunci, dan jika gagal semua, akan menurunkan Model AI ke versi ringan agar tetap berjalan.</p>
                 </div>
                 <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
             </div>
@@ -136,12 +136,12 @@
 
     <script>
         // --- KONFIGURASI MODEL & ROTASI ---
-        // Daftar model sesuai prioritas (Dari tinggi ke rendah/stabil)
         const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
         
         let currentKeyIndex = 0;
         let currentModelIndex = 0;
-        let keysAttemptedForCurrentModel = 0;
+        let keysAttemptedForCurrentModel = 0; // Berapa key yang sudah dicoba di model saat ini
+        let consecutiveErrors = 0; // Penghitung total siklus otomatis
         const totalKeys = 4;
 
         function toggleSidebar() {
@@ -179,6 +179,7 @@
             currentKeyIndex = 0;
             currentModelIndex = 0;
             keysAttemptedForCurrentModel = 0;
+            consecutiveErrors = 0;
             
             // Pastikan slot 1 benar-benar ada isinya, jika tidak, cari slot pertama yang ada isinya
             if(!getActiveApiKey()) {
@@ -187,7 +188,7 @@
                 }
             }
 
-            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase(); // ambil "2.5" atau "1.5"
+            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
             updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-green-500/20 text-green-400 border-green-500/30");
             
             // Perbarui frame jika sedang ada aplikasi yang terbuka
@@ -199,21 +200,29 @@
             const activeKeysCount = getActiveKeysCount();
             if(activeKeysCount === 0) return;
 
-            // Cari kunci aktif berikutnya
-            let attempts = 0;
-            while(attempts < totalKeys) {
-                currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
-                if(getActiveApiKey()) { break; }
-                attempts++;
-            }
-
             keysAttemptedForCurrentModel++;
 
-            // Jika semua kunci aktif sudah dicoba pada model saat ini, ganti model
+            // Jika semua kunci aktif SUDAH dicoba pada model saat ini, BARU ganti model
             if (keysAttemptedForCurrentModel >= activeKeysCount) {
                 currentModelIndex = (currentModelIndex + 1) % aiModels.length;
                 keysAttemptedForCurrentModel = 0; // Reset counter untuk model baru
-                console.warn(`[SEHATI Dashboard] Semua kunci gagal di model sebelumnya. Menurunkan model ke: ${aiModels[currentModelIndex]}`);
+                console.warn(`[SEHATI Dashboard] Semua kunci di model ini gagal. Menurunkan model ke: ${aiModels[currentModelIndex]}`);
+                
+                // Kembalikan putaran ke API Key terisi yang PERTAMA
+                for(let i=0; i<totalKeys; i++) {
+                    if(document.getElementById(`api_key_${i}`).value.trim()) { 
+                        currentKeyIndex = i; 
+                        break; 
+                    }
+                }
+            } else {
+                // Belum semua kunci dicoba, lanjut ke slot API key berikutnya
+                let attempts = 0;
+                while(attempts < totalKeys) {
+                    currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
+                    if(getActiveApiKey()) { break; }
+                    attempts++;
+                }
             }
 
             const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
@@ -252,10 +261,40 @@
                 sendConfigToApp();
             }
 
-            // Tangkap semua sinyal error yang memerlukan rotasi konfigurasi (429 Kuota, 404/403 Model Tidak Mendukung)
+            // Jika aplikasi berhasil generate, reset putaran error
+            if (event.data.type === 'API_SUCCESS') {
+                consecutiveErrors = 0; 
+                keysAttemptedForCurrentModel = 0;
+            }
+
+            // Tangkap sinyal error dari aplikasi
             if (event.data.type === 'API_ERROR') {
-                console.warn(`[SEHATI Dashboard] Menerima sinyal Error API (Kode: ${event.data.code}). Memulai rotasi otomatis...`);
-                rotateConfig();
+                const activeKeys = getActiveKeysCount();
+                if (activeKeys === 0) return;
+
+                consecutiveErrors++;
+                const maxAttempts = activeKeys * aiModels.length; // Total semua kombinasi
+
+                // Pencegah Infinite Loop (Gagal di semua key & semua model)
+                if (consecutiveErrors >= maxAttempts) {
+                    console.warn(`[SEHATI Dashboard] Semua kombinasi gagal (${maxAttempts} percobaan).`);
+                    updateStatusUI(`ERROR TOTAL`, "bg-red-500/20 text-red-400 border-red-500/30");
+                    
+                    const frame = document.getElementById('appFrame');
+                    if (frame && frame.contentWindow) {
+                        frame.contentWindow.postMessage({ type: 'STOP_RETRY' }, '*');
+                    }
+                    consecutiveErrors = 0; // Reset agar bisa dicoba manual lagi nanti
+                    keysAttemptedForCurrentModel = 0;
+                    return;
+                }
+
+                console.warn(`[SEHATI Dashboard] Error API (Kode: ${event.data.code}). Rotasi otomatis ke-${consecutiveErrors}/${maxAttempts}...`);
+                
+                // Tambahkan jeda 2 detik sebelum memutar ke API/Model berikutnya
+                setTimeout(() => {
+                    rotateConfig();
+                }, 2000);
             }
         });
 
