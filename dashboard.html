@@ -48,12 +48,13 @@
 
         <div class="p-4 bg-slate-800/40 border-b border-slate-700">
             <div class="flex justify-between items-center mb-3">
-                <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest"><i class="fa-solid fa-key mr-1"></i> Rotasi API Key</label>
+                <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest"><i class="fa-solid fa-key mr-1"></i> Pengaturan AI</label>
                 <div class="flex gap-2">
                     <button onclick="showApiKeyGuide()" class="text-[9px] text-amber-400 hover:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-circle-question"></i> Panduan</button>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Link</a>
                 </div>
             </div>
+            <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem akan merotasi Kunci dan mencoba ulang dengan Model Cadangan otomatis jika terjadi kegagalan.</p>
             <div class="space-y-2 mb-4">
                 <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
                 <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
@@ -126,7 +127,7 @@
                     <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
                 </ol>
                 <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
-                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan agar aplikasi tetap berjalan saat kuota harian kunci utama habis.</p>
+                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan. Sistem secara otomatis mengganti kunci, dan jika gagal semua, menurunkan Model AI ke versi ringan agar tetap berjalan.</p>
                 </div>
                 <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
             </div>
@@ -134,7 +135,13 @@
     </div>
 
     <script>
+        // --- KONFIGURASI MODEL & ROTASI ---
+        // Daftar model sesuai prioritas (Dari tinggi ke rendah/stabil)
+        const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+        
         let currentKeyIndex = 0;
+        let currentModelIndex = 0;
+        let keysAttemptedForCurrentModel = 0;
         const totalKeys = 4;
 
         function toggleSidebar() {
@@ -157,57 +164,98 @@
             ind2.className = `text-[8px] px-2 py-1 rounded-full font-bold uppercase border ${colorClass}`;
         }
 
-        function saveAndConnect() {
-            if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
-            updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-green-500/20 text-green-400 border-green-500/30");
-            alert("API Key berhasil disambungkan.");
+        function getActiveKeysCount() {
+            let count = 0;
+            for(let i=0; i<totalKeys; i++) {
+                if(document.getElementById(`api_key_${i}`).value.trim()) count++;
+            }
+            return count;
         }
 
-        function rotateApiKey() {
-            let attempts = 0; let found = false;
+        function saveAndConnect() {
+            if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
+            
+            // Reset rotasi ke awal
+            currentKeyIndex = 0;
+            currentModelIndex = 0;
+            keysAttemptedForCurrentModel = 0;
+            
+            // Pastikan slot 1 benar-benar ada isinya, jika tidak, cari slot pertama yang ada isinya
+            if(!getActiveApiKey()) {
+                for(let i=0; i<totalKeys; i++) {
+                    if(document.getElementById(`api_key_${i}`).value.trim()) { currentKeyIndex = i; break; }
+                }
+            }
+
+            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase(); // ambil "2.5" atau "1.5"
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-green-500/20 text-green-400 border-green-500/30");
+            
+            // Perbarui frame jika sedang ada aplikasi yang terbuka
+            sendConfigToApp();
+            alert("API Key & Pengaturan AI berhasil disimpan.");
+        }
+
+        function rotateConfig() {
+            const activeKeysCount = getActiveKeysCount();
+            if(activeKeysCount === 0) return;
+
+            // Cari kunci aktif berikutnya
+            let attempts = 0;
             while(attempts < totalKeys) {
                 currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
-                if(getActiveApiKey()) { found = true; break; }
+                if(getActiveApiKey()) { break; }
                 attempts++;
             }
 
-            if(found) {
-                updateStatusUI(`SLOT ${currentKeyIndex + 1} AKTIF`, "bg-amber-500/20 text-amber-400 border-amber-500/30");
-                sendKeyToApp();
-            } else {
-                updateStatusUI(`OFFLINE`, "bg-red-500/20 text-red-400 border-red-500/30");
-                alert("❌ Semua API Key kehabisan kuota atau kosong. Silakan masukkan kunci baharu.");
+            keysAttemptedForCurrentModel++;
+
+            // Jika semua kunci aktif sudah dicoba pada model saat ini, ganti model
+            if (keysAttemptedForCurrentModel >= activeKeysCount) {
+                currentModelIndex = (currentModelIndex + 1) % aiModels.length;
+                keysAttemptedForCurrentModel = 0; // Reset counter untuk model baru
+                console.warn(`[SEHATI Dashboard] Semua kunci gagal di model sebelumnya. Menurunkan model ke: ${aiModels[currentModelIndex]}`);
             }
+
+            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-amber-500/20 text-amber-400 border-amber-500/30");
+            sendConfigToApp();
         }
 
-        function sendKeyToApp() {
+        function sendConfigToApp() {
             const frame = document.getElementById('appFrame');
             const key = getActiveApiKey();
+            const model = aiModels[currentModelIndex];
             if (frame && frame.contentWindow && key) {
-                frame.contentWindow.postMessage({ type: 'UPDATE_API_KEY', key: key }, '*');
+                frame.contentWindow.postMessage({ type: 'UPDATE_CONFIG', key: key, model: model }, '*');
             }
         }
 
         function loadApp(url) {
             const key = getActiveApiKey();
+            const model = aiModels[currentModelIndex];
+            
             if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
             if(window.innerWidth < 768) toggleSidebar(); 
+            
             document.getElementById('welcomeScreen').classList.add('hidden');
             const frame = document.getElementById('appFrame');
             frame.classList.remove('hidden');
-            frame.src = `${url}?key=${encodeURIComponent(key)}`;
+            
+            // Kirim parameter kunci dan model melalui URL untuk inisiasi awal
+            frame.src = `${url}?key=${encodeURIComponent(key)}&model=${encodeURIComponent(model)}`;
         }
 
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
             
-            if (event.data.type === 'REQUEST_API_KEY') {
-                sendKeyToApp();
+            if (event.data.type === 'REQUEST_CONFIG') {
+                sendConfigToApp();
             }
 
-            if (event.data.type === 'API_ERROR' && event.data.code === 429) {
-                console.warn("Menerima isyarat Kuota Penuh. Melakukan rotasi otomatis...");
-                rotateApiKey();
+            // Tangkap semua sinyal error yang memerlukan rotasi konfigurasi (429 Kuota, 404/403 Model Tidak Mendukung)
+            if (event.data.type === 'API_ERROR') {
+                console.warn(`[SEHATI Dashboard] Menerima sinyal Error API (Kode: ${event.data.code}). Memulai rotasi otomatis...`);
+                rotateConfig();
             }
         });
 
