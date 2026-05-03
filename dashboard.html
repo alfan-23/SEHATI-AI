@@ -9,12 +9,13 @@
         (function() {
             const allowedDomain = "alfan-23.github.io";
             const currentDomain = window.location.hostname;
-            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1") {
+            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
                 document.documentElement.innerHTML = `<div style="text-align:center; margin-top:20%;"><h1>LISENSI TIDAK VALID</h1></div>`;
                 throw new Error("Unauthorized Access");
             }
-            if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1") {
-                window.location.href = 'index.html';
+            if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
+                // Hapus komentar di bawah ini jika halaman login sudah ada
+                // window.location.href = 'index.html';
             }
         })();
     </script>
@@ -67,6 +68,10 @@
             
             <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
                 <i class="fa-solid fa-file-signature w-5 group-hover:scale-110 transition"></i> SK-Generator
+            </button>
+            
+            <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
+                <i class="fa-solid fa-file-invoice w-5 group-hover:scale-110 transition"></i> SOP Generator
             </button>
 
             <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
