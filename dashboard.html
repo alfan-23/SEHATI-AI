@@ -27,13 +27,28 @@
         tailwind.config = { theme: { extend: { colors: { navy: '#1e293b', skyblue: '#38bdf8' }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
     </script>
     <style>
-        @media (max-width: 768px) { .sidebar-closed { transform: translateX(-100%); } .sidebar-open { transform: translateX(0); } }
-        .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Pengaturan Animasi Geser Sidebar untuk Mobile dan Desktop */
+        #sidebar { transition: margin 0.3s ease, transform 0.3s ease; }
+        
+        /* Mobile: Secara bawaan tertutup (geser kiri) */
+        @media (max-width: 767px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.toggled { transform: translateX(0); }
+        }
+        
+        /* Desktop: Secara bawaan terbuka (margin 0) */
+        @media (min-width: 768px) {
+            #sidebar { margin-left: 0; }
+            #sidebar.toggled { margin-left: -18rem; /* Menyembunyikan sidebar (w-72 = 18rem) */ }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; } 
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-slate-100 h-screen flex overflow-hidden">
+<body class="bg-slate-100 h-[100dvh] flex overflow-hidden">
 
-    <aside id="sidebar" class="fixed md:relative w-72 bg-navy text-white h-full flex flex-col shadow-2xl z-40 transition-transform duration-300 sidebar-closed md:transform-none">
+    <aside id="sidebar" class="fixed md:relative w-72 bg-navy text-white h-full flex flex-col shadow-2xl z-40 flex-shrink-0">
         
         <div class="p-5 border-b border-slate-700 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -54,33 +69,66 @@
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Link</a>
                 </div>
             </div>
-            <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem akan memutar semua Slot API Key pada Model utama. Jika gagal, akan turun ke Model cadangan otomatis.</p>
+            <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem memutar semua Slot API Key. Jika gagal, otomatis turun ke Model cadangan.</p>
             <div class="space-y-2 mb-4">
                 <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
                 <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
                 <input type="password" id="api_key_2" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 3 (Cadangan 2)">
                 <input type="password" id="api_key_3" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 4 (Cadangan 3)">
             </div>
-            <button onclick="saveAndConnect()" class="w-full py-2 bg-skyblue/10 border border-skyblue/30 text-skyblue rounded-lg text-[10px] font-bold uppercase hover:bg-skyblue hover:text-navy transition-all">Simpan & Hubungkan</button>
+            <button onclick="saveAndConnect()" class="w-full py-2 bg-skyblue/10 border border-skyblue/30 text-skyblue rounded-lg text-[10px] font-bold uppercase hover:bg-skyblue hover:text-white transition-all">Simpan & Hubungkan</button>
         </div>
 
-        <nav class="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 px-3">Modul Aplikasi</p>
+        <nav class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
             
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
-                <i class="fa-solid fa-file-signature w-5 group-hover:scale-110 transition"></i> SK-Generator
-            </button>
-            
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
-                <i class="fa-solid fa-file-invoice w-5 group-hover:scale-110 transition"></i> SOP Generator
-            </button>
+            <div>
+                <p class="text-[10px] font-bold text-skyblue uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
+                    <i class="fa-solid fa-hospital-user text-sm"></i> Puskesmas
+                </p>
+                <div class="space-y-1 pl-1">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-chart-line w-5 text-center group-hover:scale-110 transition"></i> Profil IMP
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-shield-virus w-5 text-center group-hover:scale-110 transition"></i> Manajemen Risiko
+                    </button>
+                </div>
+            </div>
 
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
-                <i class="fa-solid fa-chart-line w-5 group-hover:scale-110 transition"></i> Profil IMP
-            </button>
-            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/index.html')" class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-300 hover:bg-white/10 hover:text-skyblue transition-all group">
-                <i class="fa-solid fa-shield-virus w-5 group-hover:scale-110 transition"></i> Manajemen Risiko
-            </button>
+            <div>
+                <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
+                    <i class="fa-solid fa-hospital text-sm"></i> Rumah Sakit
+                </p>
+                <div class="space-y-1 pl-1">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
+                    <i class="fa-solid fa-stethoscope text-sm"></i> Klinik
+                </p>
+                <div class="space-y-1 pl-1">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
+                    </button>
+                </div>
+            </div>
+
         </nav>
 
         <div class="p-4 border-t border-slate-700">
@@ -90,13 +138,20 @@
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col min-w-0 h-full">
-        <header class="bg-navy border-b border-slate-700 px-4 py-3 flex items-center justify-between z-30 md:hidden">
+    <main class="flex-1 flex flex-col min-w-0 h-full relative">
+        
+        <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-30 shadow-sm">
             <div class="flex items-center gap-3">
-                <button onclick="toggleSidebar()" class="p-2 text-skyblue bg-slate-800 rounded-lg"><i class="fa-solid fa-bars text-lg"></i></button>
-                <span class="font-bold text-white text-sm">SEHATI - AI</span>
+                <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors focus:outline-none">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <span class="font-bold text-navy text-sm hidden md:block tracking-wide">Workspace SEHATI</span>
+                <span class="font-bold text-navy text-sm md:hidden tracking-wide">SEHATI - AI</span>
             </div>
-            <div id="mobileStatusIndicator" class="text-[8px] bg-red-500/20 text-red-400 px-2 py-1 rounded-full font-bold uppercase border border-red-500/30">OFFLINE</div>
+            
+            <div id="topStatusIndicator" class="text-[9px] bg-red-500/20 text-red-600 px-3 py-1.5 rounded-full font-bold uppercase border border-red-200 shadow-sm">
+                OFFLINE
+            </div>
         </header>
 
         <div class="flex-1 relative overflow-hidden bg-slate-100">
@@ -106,7 +161,7 @@
                     <div class="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center animate-bounce shadow"><i class="fa-solid fa-key text-[10px] text-white"></i></div>
                 </div>
                 <h2 class="text-2xl font-bold text-navy tracking-tight mb-2">Sistem AI Menunggu Konfigurasi</h2>
-                <p class="text-slate-500 text-sm max-w-sm">Isi minimal <b>Slot 1 (Key Utama)</b> di menu samping kiri, klik <b>Simpan & Hubungkan</b>, lalu pilih modul aplikasi.</p>
+                <p class="text-slate-500 text-sm max-w-sm">Buka Menu Bar, isi minimal <b>Slot 1 (Key Utama)</b>, klik <b>Simpan & Hubungkan</b>, lalu pilih modul aplikasi.</p>
             </div>
             <iframe id="appFrame" class="w-full h-full bg-white hidden border-none" src="about:blank"></iframe>
         </div>
@@ -144,9 +199,9 @@
         let consecutiveErrors = 0; // Penghitung total siklus otomatis
         const totalKeys = 4;
 
+        // FUNGSI BUKA / TUTUP SIDEBAR
         function toggleSidebar() {
-            const sb = document.getElementById('sidebar');
-            sb.classList.toggle('sidebar-closed'); sb.classList.toggle('sidebar-open');
+            document.getElementById('sidebar').classList.toggle('toggled');
         }
 
         function showApiKeyGuide() { document.getElementById('guideModal').classList.remove('hidden'); }
@@ -157,11 +212,18 @@
             return input ? input.value.trim() : "";
         }
 
+        // UPDATE UI STATUS
         function updateStatusUI(statusText, colorClass) {
-            const ind1 = document.getElementById('statusIndicator'); const ind2 = document.getElementById('mobileStatusIndicator');
-            ind1.innerText = statusText; ind2.innerText = statusText;
-            ind1.className = `text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${colorClass}`;
-            ind2.className = `text-[8px] px-2 py-1 rounded-full font-bold uppercase border ${colorClass}`;
+            const ind1 = document.getElementById('statusIndicator'); 
+            const ind2 = document.getElementById('topStatusIndicator');
+            if(ind1) {
+                ind1.innerText = statusText;
+                ind1.className = `text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${colorClass}`;
+            }
+            if(ind2) {
+                ind2.innerText = statusText;
+                ind2.className = `text-[9px] px-3 py-1.5 rounded-full font-bold uppercase border shadow-sm ${colorClass}`;
+            }
         }
 
         function getActiveKeysCount() {
@@ -189,7 +251,7 @@
             }
 
             const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
-            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-green-500/20 text-green-400 border-green-500/30");
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-green-500/20 text-green-600 border-green-300");
             
             // Perbarui frame jika sedang ada aplikasi yang terbuka
             sendConfigToApp();
@@ -202,7 +264,7 @@
 
             keysAttemptedForCurrentModel++;
 
-            // Jika semua kunci aktif SUDAH dicoba pada model saat ini, BARU ganti model
+            // Jika semua kunci di model ini gagal, baru ganti modelnya
             if (keysAttemptedForCurrentModel >= activeKeysCount) {
                 currentModelIndex = (currentModelIndex + 1) % aiModels.length;
                 keysAttemptedForCurrentModel = 0; // Reset counter untuk model baru
@@ -226,7 +288,7 @@
             }
 
             const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
-            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-amber-500/20 text-amber-400 border-amber-500/30");
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-amber-500/20 text-amber-600 border-amber-300");
             sendConfigToApp();
         }
 
@@ -244,7 +306,11 @@
             const model = aiModels[currentModelIndex];
             
             if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
-            if(window.innerWidth < 768) toggleSidebar(); 
+            
+            // Tutup sidebar di mobile saat menu ditekan
+            if(window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.remove('toggled'); 
+            }
             
             document.getElementById('welcomeScreen').classList.add('hidden');
             const frame = document.getElementById('appFrame');
@@ -254,6 +320,7 @@
             frame.src = `${url}?key=${encodeURIComponent(key)}&model=${encodeURIComponent(model)}`;
         }
 
+        // MENERIMA SINYAL DARI APLIKASI ANAK (IFRAME)
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
             
@@ -278,7 +345,7 @@
                 // Pencegah Infinite Loop (Gagal di semua key & semua model)
                 if (consecutiveErrors >= maxAttempts) {
                     console.warn(`[SEHATI Dashboard] Semua kombinasi gagal (${maxAttempts} percobaan).`);
-                    updateStatusUI(`ERROR TOTAL`, "bg-red-500/20 text-red-400 border-red-500/30");
+                    updateStatusUI(`ERROR TOTAL`, "bg-red-500/20 text-red-600 border-red-300");
                     
                     const frame = document.getElementById('appFrame');
                     if (frame && frame.contentWindow) {
