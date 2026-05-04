@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEHATI - AI | alfan-23</title>
+    <title>SEHATI - AI | Login Fasyankes</title>
     
     <script>
         (function() {
@@ -36,7 +36,23 @@
                         skyblue: '#38bdf8',
                         vibrant: '#0ea5e9'
                     },
-                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
                 }
             }
         }
@@ -44,121 +60,140 @@
     
     <style>
         body { 
-            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            background: #0f172a; /* Fallback solid color */
+            background: radial-gradient(circle at top right, #1e293b, #090e1a);
             color: #f8fafc;
+            overflow-x: hidden;
         }
         .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 1px solid rgba(255, 255, 255, 0.15);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
         }
         .input-glow:focus {
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+            border-color: #38bdf8;
         }
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4 md:p-6">
+<body class="min-h-screen flex items-center justify-center p-4 md:p-6 relative">
 
-    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div class="absolute top-[10%] left-[5%] w-64 h-64 bg-skyblue opacity-10 blur-[100px] rounded-full animate-pulse"></div>
-        <div class="absolute bottom-[10%] right-[5%] w-80 h-80 bg-vibrant opacity-10 blur-[120px] rounded-full animate-float"></div>
+    <div class="fixed inset-0 w-full h-full overflow-hidden -z-10 pointer-events-none flex justify-center items-center">
+        <div class="absolute top-[10%] left-[20%] w-72 h-72 bg-skyblue opacity-20 blur-[100px] rounded-full mix-blend-screen animate-blob"></div>
+        <div class="absolute top-[20%] right-[20%] w-72 h-72 bg-vibrant opacity-20 blur-[100px] rounded-full mix-blend-screen animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[10%] left-[40%] w-80 h-80 bg-indigo-500 opacity-20 blur-[120px] rounded-full mix-blend-screen animate-blob animation-delay-4000"></div>
     </div>
 
-    <div class="w-full max-w-[1000px] flex flex-col md:flex-row items-stretch gap-0 md:gap-4">
+    <div class="w-full max-w-[1000px] flex flex-col md:flex-row items-stretch gap-8 md:gap-4 opacity-0 animate-fade-in-up">
         
-        <div class="md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-center md:text-left">
-            <div class="inline-flex items-center gap-3 mb-6 justify-center md:justify-start">
-                <div class="w-12 h-12 bg-skyblue rounded-2xl flex items-center justify-center shadow-lg shadow-skyblue/20">
-                    <i class="fa-solid fa-brain text-navy text-2xl"></i>
+        <div class="md:w-1/2 p-4 md:p-12 flex flex-col justify-center text-center md:text-left z-10">
+            <div class="inline-flex items-center gap-4 mb-6 justify-center md:justify-start">
+                <div class="w-14 h-14 bg-gradient-to-br from-skyblue to-vibrant rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.4)]">
+                    <i class="fa-solid fa-hospital-user text-white text-2xl"></i>
                 </div>
-                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tighter text-white">SEHATI - AI</h1>
+                <h1 class="text-4xl md:text-5xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">SEHATI - AI</h1>
             </div>
             
-            <h2 class="text-xl md:text-2xl font-bold text-skyblue mb-4 leading-snug">
-                Solusi Cerdas Administrasi Kesehatan
+            <h2 class="text-2xl md:text-3xl font-bold text-skyblue mb-5 leading-snug">
+                Solusi Cerdas <br class="hidden md:block">Administrasi Kesehatan
             </h2>
-            <p class="text-slate-400 text-sm md:text-base leading-relaxed mb-8">
-                Platform terintegrasi untuk asistensi penyusunan dokumen administrasi layanan kesehatan berbasis kecerdasan buatan.
+            <p class="text-slate-400 text-sm md:text-base leading-relaxed mb-10">
+                Platform terintegrasi untuk asistensi penyusunan dokumen layanan kesehatan berbasis kecerdasan buatan, disesuaikan dengan standar mutu dan akreditasi fasyankes.
             </p>
             
             <div class="grid grid-cols-2 gap-4 hidden md:grid">
-                <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
-                    <i class="fa-solid fa-bolt text-skyblue mb-2 block"></i>
-                    <span class="font-semibold text-slate-300">Proses Instan</span>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
+                    <div class="w-8 h-8 rounded-full bg-skyblue/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-bolt text-skyblue text-sm"></i>
+                    </div>
+                    <span class="font-semibold text-slate-200 text-sm block">Proses Instan</span>
+                    <span class="text-xs text-slate-500 mt-1 block">Efisiensi waktu dokumen</span>
                 </div>
-                <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
-                    <i class="fa-solid fa-shield-check text-skyblue mb-2 block"></i>
-                    <span class="font-semibold text-slate-300">Keamanan Data</span>
+                <div class="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
+                    <div class="w-8 h-8 rounded-full bg-skyblue/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-shield-check text-skyblue text-sm"></i>
+                    </div>
+                    <span class="font-semibold text-slate-200 text-sm block">Akses Tervalidasi</span>
+                    <span class="text-xs text-slate-500 mt-1 block">Sistem approval terpusat</span>
                 </div>
             </div>
         </div>
 
-        <div class="md:w-1/2">
-            <div class="glass-card rounded-[32px] p-8 md:p-10 shadow-2xl relative overflow-hidden">
-                <h3 class="text-2xl font-bold text-white mb-2">Selamat Datang</h3>
-                <p class="text-slate-400 text-sm mb-8">Masukkan kredensial fasyankes Anda.</p>
+        <div class="md:w-1/2 z-10">
+            <div class="glass-card rounded-[2rem] p-8 md:p-10 relative overflow-hidden">
+                <div class="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-skyblue/20 to-transparent rounded-full blur-xl"></div>
+
+                <div class="mb-8">
+                    <h3 class="text-3xl font-bold text-white mb-2">Selamat Datang</h3>
+                    <p class="text-slate-400 text-sm">Masukkan kredensial fasyankes Anda.</p>
+                </div>
                 
                 <form onsubmit="handleLogin(event)" class="space-y-5">
-                    <div class="space-y-2">
-                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Kategori Layanan</label>
-                        <select id="loginFasyankes" required class="w-full bg-darkblue/50 border border-slate-700 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-skyblue input-glow transition-all appearance-none cursor-pointer">
-                            <option value="" class="bg-navy">Pilih Jenis Fasyankes</option>
-                            <option value="Puskesmas" class="bg-navy">Puskesmas</option>
-                            <option value="Klinik" class="bg-navy">Klinik / Praktik Mandiri</option>
-                            <option value="Rumah Sakit" class="bg-navy">Rumah Sakit</option>
-                        </select>
-                    </div>
-
-                    <div class="space-y-2">
-                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Email Terdaftar</label>
+                    <div class="space-y-2 group">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1 opacity-80 group-focus-within:opacity-100 transition-opacity">Kategori Layanan</label>
                         <div class="relative">
-                            <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                            <input type="email" id="loginEmail" required class="w-full bg-darkblue/50 border border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white outline-none focus:border-skyblue input-glow transition-all" placeholder="admin@fasyankes.id">
+                            <select id="loginFasyankes" required class="w-full bg-darkblue/40 border border-slate-700/80 rounded-xl px-4 py-3.5 text-sm text-white outline-none input-glow transition-all appearance-none cursor-pointer">
+                                <option value="" class="bg-navy">Pilih Jenis Fasyankes</option>
+                                <option value="Puskesmas" class="bg-navy">Puskesmas</option>
+                                <option value="Klinik" class="bg-navy">Klinik / Praktik Mandiri</option>
+                                <option value="Rumah Sakit" class="bg-navy">Rumah Sakit</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Kata Sandi</label>
+                    <div class="space-y-2 group">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1 opacity-80 group-focus-within:opacity-100 transition-opacity">Email Terdaftar</label>
                         <div class="relative">
-                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                            <input type="password" id="loginPassword" required class="w-full bg-darkblue/50 border border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white outline-none focus:border-skyblue input-glow transition-all" placeholder="••••••••">
+                            <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs group-focus-within:text-skyblue transition-colors"></i>
+                            <input type="email" id="loginEmail" required class="w-full bg-darkblue/40 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white outline-none input-glow transition-all" placeholder="admin@fasyankes.id">
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full bg-skyblue hover:bg-vibrant text-navy font-extrabold py-4 rounded-2xl transition-all shadow-lg shadow-skyblue/20 active:scale-[0.98] mt-4 uppercase tracking-wider">
-                        Masuk ke Dashboard
+                    <div class="space-y-2 group">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1 opacity-80 group-focus-within:opacity-100 transition-opacity">Kata Sandi</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs group-focus-within:text-skyblue transition-colors"></i>
+                            <input type="password" id="loginPassword" required class="w-full bg-darkblue/40 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white outline-none input-glow transition-all" placeholder="••••••••">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gradient-to-r from-skyblue to-vibrant text-white font-extrabold py-4 rounded-xl transition-all hover:shadow-[0_0_20px_rgba(56,189,248,0.5)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 mt-6 uppercase tracking-wider text-sm flex justify-center items-center gap-2">
+                        <span>Masuk ke Dashboard</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
                     </button>
                 </form>
 
-                <div class="mt-8 pt-6 border-t border-white/5 text-center">
-                    <p class="text-xs text-slate-500">
-                        Butuh akses baru? <a href="#" onclick="alert('Silakan hubungi Admin Dinkes untuk pendaftaran unit fasyankes baru.')" class="text-skyblue font-bold hover:underline">Registrasi Akun</a>
+                <div class="mt-8 pt-6 border-t border-white/10 text-center">
+                    <p class="text-xs text-slate-400">
+                        Belum memiliki akses fasyankes? <br class="md:hidden mt-1">
+                        <a href="register.html" class="text-skyblue font-bold hover:text-white hover:underline transition-colors ml-1">Registrasi Akun Baru</a>
                     </p>
                 </div>
-                
-                <div class="absolute top-0 right-0 w-24 h-24 bg-skyblue/5 rounded-full -mr-12 -mt-12"></div>
             </div>
         </div>
     </div>
 
-    <div id="loader" class="hidden fixed inset-0 z-50 bg-navy/90 backdrop-blur-md flex flex-col justify-center items-center">
+    <div id="loader" class="hidden fixed inset-0 z-50 bg-navy/95 backdrop-blur-xl flex flex-col justify-center items-center">
         <div class="relative">
-            <div class="w-16 h-16 border-4 border-skyblue/20 border-t-skyblue rounded-full animate-spin"></div>
-            <i class="fa-solid fa-brain text-skyblue absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+            <div class="w-16 h-16 border-4 border-slate-700 border-t-skyblue rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="fa-solid fa-shield-check text-skyblue"></i>
+            </div>
         </div>
-        <p class="text-skyblue font-bold text-xs mt-6 tracking-[0.3em] uppercase animate-pulse">Memverifikasi Lisensi...</p>
+        <p class="text-skyblue font-bold text-xs mt-6 tracking-[0.3em] uppercase animate-pulse">Memverifikasi Akses...</p>
     </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbz45tKwXC2c1bdEDDWd-97sF8KJweuNPlLvVUAYrGW_m8U2-3yorbaeaYemuFLnX9c4/exec";
+        // GAS URL SUDAH DIPERBARUI KE VERSI TERBARU
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxGJKX8zsaIXzW0O3LQF43NoyhnykoaSxyF7s6OjScz_EO7A-Ar43dXdf9UzTELuPWu/exec";
 
         async function handleLogin(e) {
             e.preventDefault();
@@ -172,8 +207,12 @@
             };
 
             try {
-                const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify(payload) 
+                });
                 const result = await response.json();
+                
                 if (result.status === 'success') {
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('unitKerja', result.unitKerja);
