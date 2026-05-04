@@ -111,6 +111,7 @@
                         <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Kategori Layanan</label>
                         <select id="regKategori" required class="w-full bg-darkblue/50 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-skyblue input-glow transition-all appearance-none cursor-pointer">
                             <option value="" class="bg-navy">Pilih Kategori</option>
+                            <option value="Dinkes" class="bg-navy">Dinas Kesehatan (Admin)</option>
                             <option value="Puskesmas" class="bg-navy">Puskesmas</option>
                             <option value="Klinik" class="bg-navy">Klinik / Praktik Mandiri</option>
                             <option value="Rumah Sakit" class="bg-navy">Rumah Sakit</option>
@@ -174,7 +175,6 @@
     </div>
 
     <script>
-        // URL GAS terbaru yang Anda berikan
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxGJKX8zsaIXzW0O3LQF43NoyhnykoaSxyF7s6OjScz_EO7A-Ar43dXdf9UzTELuPWu/exec";
 
         async function handleRegister(e) {
@@ -198,7 +198,6 @@
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    // Jika berhasil, tampilkan pesan dan arahkan ke halaman login
                     alert(result.message);
                     window.location.href = 'index.html';
                 } else {

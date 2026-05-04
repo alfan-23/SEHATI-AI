@@ -141,6 +141,7 @@
                         <div class="relative">
                             <select id="loginFasyankes" required class="w-full bg-darkblue/40 border border-slate-700/80 rounded-xl px-4 py-3.5 text-sm text-white outline-none input-glow transition-all appearance-none cursor-pointer">
                                 <option value="" class="bg-navy">Pilih Jenis Fasyankes</option>
+                                <option value="Dinkes" class="bg-navy">Dinas Kesehatan (Admin)</option>
                                 <option value="Puskesmas" class="bg-navy">Puskesmas</option>
                                 <option value="Klinik" class="bg-navy">Klinik / Praktik Mandiri</option>
                                 <option value="Rumah Sakit" class="bg-navy">Rumah Sakit</option>
@@ -192,7 +193,6 @@
     </div>
 
     <script>
-        // GAS URL SUDAH DIPERBARUI KE VERSI TERBARU
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxGJKX8zsaIXzW0O3LQF43NoyhnykoaSxyF7s6OjScz_EO7A-Ar43dXdf9UzTELuPWu/exec";
 
         async function handleLogin(e) {
@@ -216,6 +216,7 @@
                 if (result.status === 'success') {
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('unitKerja', result.unitKerja);
+                    sessionStorage.setItem('kategori', payload.fasyankes);
                     window.location.href = 'dashboard.html';
                 } else {
                     alert("Akses Ditolak: " + result.message);
