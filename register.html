@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Fasyankes | SEHATI - AI</title>
+    
+    <script>
+        (function() {
+            const allowedDomain = "alfan-23.github.io";
+            const currentDomain = window.location.hostname;
+            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1") {
+                document.documentElement.innerHTML = `
+                    <div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#0f172a; color:#38bdf8; font-family:sans-serif; text-align:center; padding:20px;">
+                        <div>
+                            <h1 style="font-size:1.8rem; margin-bottom:10px;">⚠️ LISENSI TIDAK VALID</h1>
+                            <p>Akses hanya diizinkan melalui domain resmi: <b>${allowedDomain}</b></p>
+                        </div>
+                    </div>`;
+                throw new Error("Unauthorized Access");
+            }
+        })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { 
+                        navy: '#0f172a', 
+                        darkblue: '#1e293b',
+                        skyblue: '#38bdf8',
+                        vibrant: '#0ea5e9'
+                    },
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { 
+            background: radial-gradient(circle at top right, #1e293b, #0f172a);
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .input-glow:focus {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-6">
+
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[10%] left-[5%] w-64 h-64 bg-skyblue opacity-10 blur-[100px] rounded-full animate-pulse"></div>
+        <div class="absolute bottom-[10%] right-[5%] w-80 h-80 bg-vibrant opacity-10 blur-[120px] rounded-full animate-float"></div>
+    </div>
+
+    <div class="w-full max-w-[1000px] flex flex-col md:flex-row items-center gap-0 md:gap-4">
+        
+        <div class="md:w-1/2 p-8 md:p-12 flex flex-col justify-center text-center md:text-left">
+            <div class="inline-flex items-center gap-3 mb-6 justify-center md:justify-start">
+                <div class="w-12 h-12 bg-skyblue rounded-2xl flex items-center justify-center shadow-lg shadow-skyblue/20">
+                    <i class="fa-solid fa-hospital-user text-navy text-2xl"></i>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold tracking-tighter text-white">SEHATI - AI</h1>
+            </div>
+            
+            <h2 class="text-xl md:text-2xl font-bold text-skyblue mb-4 leading-snug">
+                Registrasi Unit Layanan
+            </h2>
+            <p class="text-slate-400 text-sm md:text-base leading-relaxed mb-8">
+                Daftarkan fasilitas pelayanan kesehatan untuk mendapatkan akses ke platform asistensi administrasi terintegrasi di lingkungan Dinas Kesehatan Kabupaten.
+            </p>
+            
+            <div class="grid grid-cols-2 gap-4 hidden md:grid">
+                <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+                    <i class="fa-solid fa-file-signature text-skyblue mb-2 block"></i>
+                    <span class="font-semibold text-slate-300">Pendaftaran Mudah</span>
+                </div>
+                <div class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs">
+                    <i class="fa-solid fa-user-check text-skyblue mb-2 block"></i>
+                    <span class="font-semibold text-slate-300">Validasi Terpusat</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="md:w-1/2 w-full">
+            <div class="glass-card rounded-[32px] p-8 md:p-10 shadow-2xl relative overflow-hidden">
+                <h3 class="text-2xl font-bold text-white mb-2">Formulir Pendaftaran</h3>
+                <p class="text-slate-400 text-xs mb-6">Lengkapi data fasyankes dengan benar.</p>
+                
+                <form onsubmit="handleRegister(event)" class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Kategori Layanan</label>
+                        <select id="regKategori" required class="w-full bg-darkblue/50 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-skyblue input-glow transition-all appearance-none cursor-pointer">
+                            <option value="" class="bg-navy">Pilih Kategori</option>
+                            <option value="Puskesmas" class="bg-navy">Puskesmas</option>
+                            <option value="Klinik" class="bg-navy">Klinik / Praktik Mandiri</option>
+                            <option value="Rumah Sakit" class="bg-navy">Rumah Sakit</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Nama Instansi / Unit</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-hospital absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                            <input type="text" id="regNama" required class="w-full bg-darkblue/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white outline-none focus:border-skyblue input-glow transition-all" placeholder="Contoh: UPTD Puskesmas ...">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">No. WhatsApp Admin</label>
+                        <div class="relative">
+                            <i class="fa-brands fa-whatsapp absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                            <input type="tel" id="regWa" required class="w-full bg-darkblue/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white outline-none focus:border-skyblue input-glow transition-all" placeholder="081234567890 (Untuk Notifikasi)">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Email Unit</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                            <input type="email" id="regEmail" required class="w-full bg-darkblue/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white outline-none focus:border-skyblue input-glow transition-all" placeholder="admin@fasyankes.id">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1">Kata Sandi Baru</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                            <input type="password" id="regPassword" required minlength="6" class="w-full bg-darkblue/50 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white outline-none focus:border-skyblue input-glow transition-all" placeholder="Minimal 6 karakter">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-skyblue hover:bg-vibrant text-navy font-extrabold py-3.5 rounded-xl transition-all shadow-lg shadow-skyblue/20 active:scale-[0.98] mt-2 uppercase tracking-wider text-sm">
+                        Kirim Pengajuan
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-4 border-t border-white/5 text-center">
+                    <p class="text-xs text-slate-500">
+                        Sudah disetujui? <a href="index.html" class="text-skyblue font-bold hover:underline">Kembali ke Halaman Login</a>
+                    </p>
+                </div>
+                
+                <div class="absolute top-0 right-0 w-24 h-24 bg-skyblue/5 rounded-full -mr-12 -mt-12"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loader" class="hidden fixed inset-0 z-50 bg-navy/90 backdrop-blur-md flex flex-col justify-center items-center">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-skyblue/20 border-t-skyblue rounded-full animate-spin"></div>
+            <i class="fa-solid fa-paper-plane text-skyblue absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+        </div>
+        <p class="text-skyblue font-bold text-xs mt-6 tracking-[0.3em] uppercase animate-pulse">Mengirim Data...</p>
+    </div>
+
+    <script>
+        // URL GAS terbaru yang Anda berikan
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxGJKX8zsaIXzW0O3LQF43NoyhnykoaSxyF7s6OjScz_EO7A-Ar43dXdf9UzTELuPWu/exec";
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            document.getElementById('loader').classList.remove('hidden');
+            
+            const payload = {
+                action: 'register',
+                kategori: document.getElementById('regKategori').value,
+                namaFasyankes: document.getElementById('regNama').value,
+                noWa: document.getElementById('regWa').value,
+                email: document.getElementById('regEmail').value,
+                pass: document.getElementById('regPassword').value
+            };
+
+            try {
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify(payload) 
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    // Jika berhasil, tampilkan pesan dan arahkan ke halaman login
+                    alert(result.message);
+                    window.location.href = 'index.html';
+                } else {
+                    alert("Pendaftaran Gagal: " + result.message);
+                }
+            } catch (err) {
+                alert("Kesalahan koneksi saat mengirim data pendaftaran.");
+            } finally {
+                document.getElementById('loader').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
