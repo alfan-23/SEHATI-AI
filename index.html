@@ -60,7 +60,7 @@
     
     <style>
         body { 
-            background: #0f172a; /* Fallback solid color */
+            background: #0f172a;
             background: radial-gradient(circle at top right, #1e293b, #090e1a);
             color: #f8fafc;
             overflow-x: hidden;
@@ -105,7 +105,7 @@
                 Solusi Cerdas <br class="hidden md:block">Administrasi Kesehatan
             </h2>
             <p class="text-slate-400 text-sm md:text-base leading-relaxed mb-10">
-                Platform terintegrasi untuk asistensi penyusunan dokumen layanan kesehatan berbasis kecerdasan buatan, disesuaikan dengan standar mutu dan akreditasi fasyankes.
+                Platform terintegrasi untuk asistensi penyusunan dokumen layanan kesehatan berbasis kecerdasan buatan, disesuaikan dengan standar akreditasi fasyankes.
             </p>
             
             <div class="grid grid-cols-2 gap-4 hidden md:grid">
@@ -114,14 +114,14 @@
                         <i class="fa-solid fa-bolt text-skyblue text-sm"></i>
                     </div>
                     <span class="font-semibold text-slate-200 text-sm block">Proses Instan</span>
-                    <span class="text-xs text-slate-500 mt-1 block">Efisiensi waktu dokumen</span>
+                    <span class="text-xs text-slate-500 mt-1 block">Efisiensi dokumen</span>
                 </div>
                 <div class="p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors group">
                     <div class="w-8 h-8 rounded-full bg-skyblue/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
                         <i class="fa-solid fa-shield-check text-skyblue text-sm"></i>
                     </div>
-                    <span class="font-semibold text-slate-200 text-sm block">Akses Tervalidasi</span>
-                    <span class="text-xs text-slate-500 mt-1 block">Sistem approval terpusat</span>
+                    <span class="font-semibold text-slate-200 text-sm block">Akses Valid</span>
+                    <span class="text-xs text-slate-500 mt-1 block">Sistem approval pusat</span>
                 </div>
             </div>
         </div>
@@ -162,7 +162,10 @@
                         <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1 opacity-80 group-focus-within:opacity-100 transition-opacity">Kata Sandi</label>
                         <div class="relative">
                             <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs group-focus-within:text-skyblue transition-colors"></i>
-                            <input type="password" id="loginPassword" required class="w-full bg-darkblue/40 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3.5 text-sm text-white outline-none input-glow transition-all" placeholder="••••••••">
+                            <input type="password" id="loginPassword" required class="w-full bg-darkblue/40 border border-slate-700/80 rounded-xl pl-11 pr-12 py-3.5 text-sm text-white outline-none input-glow transition-all" placeholder="••••••••">
+                            <button type="button" onclick="togglePassword('loginPassword', 'eyeIconLogin')" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-skyblue transition-colors outline-none focus:outline-none">
+                                <i id="eyeIconLogin" class="fa-solid fa-eye-slash text-xs"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -193,7 +196,21 @@
     </div>
 
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxGJKX8zsaIXzW0O3LQF43NoyhnykoaSxyF7s6OjScz_EO7A-Ar43dXdf9UzTELuPWu/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyqV3Q8K4RJbTS_CK8U1XTzLjC-cIZc95oaRRO5hAZElGEm-DG5YAvbhf0RhgdLo3je/exec";
+
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            }
+        }
 
         async function handleLogin(e) {
             e.preventDefault();
@@ -207,12 +224,8 @@
             };
 
             try {
-                const response = await fetch(GAS_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify(payload) 
-                });
+                const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
                 const result = await response.json();
-                
                 if (result.status === 'success') {
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('unitKerja', result.unitKerja);
