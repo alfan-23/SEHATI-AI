@@ -14,8 +14,7 @@
                 throw new Error("Unauthorized Access");
             }
             if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
-                // Hapus komentar di bawah ini jika halaman login sudah ada
-                // window.location.href = 'index.html';
+                window.location.href = 'index.html';
             }
         })();
     </script>
@@ -27,23 +26,19 @@
         tailwind.config = { theme: { extend: { colors: { navy: '#1e293b', skyblue: '#38bdf8' }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
     </script>
     <style>
-        /* Pengaturan Animasi Geser Sidebar untuk Mobile dan Desktop */
         #sidebar { transition: margin 0.3s ease, transform 0.3s ease; }
-        
-        /* Mobile: Secara bawaan tertutup (geser kiri) */
         @media (max-width: 767px) {
             #sidebar { transform: translateX(-100%); }
             #sidebar.toggled { transform: translateX(0); }
         }
-        
-        /* Desktop: Secara bawaan terbuka (margin 0) */
         @media (min-width: 768px) {
             #sidebar { margin-left: 0; }
-            #sidebar.toggled { margin-left: -18rem; /* Menyembunyikan sidebar (w-72 = 18rem) */ }
+            #sidebar.toggled { margin-left: -18rem; }
         }
-
         .no-scrollbar::-webkit-scrollbar { display: none; } 
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .spin-anim { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-slate-100 h-[100dvh] flex overflow-hidden">
@@ -55,13 +50,13 @@
                 <div class="w-8 h-8 bg-skyblue rounded-lg flex items-center justify-center font-bold text-navy"><i class="fa-solid fa-brain"></i></div>
                 <div>
                     <h2 class="font-bold text-lg text-skyblue leading-tight">SEHATI - AI</h2>
-                    <span id="statusIndicator" class="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold uppercase border border-red-500/30">Offline</span>
+                    <span id="roleIndicator" class="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold uppercase border border-slate-600">User</span>
                 </div>
             </div>
             <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
 
-        <div class="p-4 bg-slate-800/40 border-b border-slate-700">
+        <div class="p-4 bg-slate-800/40 border-b border-slate-700 overflow-y-auto max-h-[60vh] no-scrollbar">
             <div class="flex justify-between items-center mb-3">
                 <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest"><i class="fa-solid fa-key mr-1"></i> Pengaturan AI</label>
                 <div class="flex gap-2">
@@ -69,15 +64,36 @@
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Link</a>
                 </div>
             </div>
+            
             <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem memutar semua Slot API Key. Jika gagal, otomatis turun ke Model cadangan.</p>
             <div class="space-y-2 mb-3">
-                <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
-                <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
-                <input type="password" id="api_key_2" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 3 (Cadangan 2)">
-                <input type="password" id="api_key_3" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 4 (Cadangan 3)">
+                <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
+                <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
+                <input type="password" id="api_key_2" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 3 (Cadangan 2)">
+                <input type="password" id="api_key_3" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 4 (Cadangan 3)">
             </div>
 
-            <div class="flex justify-between items-center mb-4 px-1">
+            <div class="mb-3">
+                <div class="bg-slate-900/80 p-2 rounded border border-slate-700 text-[9px] flex items-center gap-2 text-slate-400">
+                    <i id="dbIcon" class="fa-solid fa-spinner spin-anim text-skyblue"></i>
+                    <span id="dbText">Menarik Aturan Dinkes...</span>
+                </div>
+            </div>
+
+            <div id="adminUploadBox" class="hidden border-t border-slate-700 pt-3 mt-3">
+                <label class="block text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Portal Suntik Aturan (Dinkes)</label>
+                <input type="password" id="github_pat" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg text-white mb-2" placeholder="🔐 GitHub PAT (github_pat_...)">
+                <input type="file" id="fileReferens" accept=".txt,.json,.md" class="hidden" onchange="handleFileSelected(this)">
+                <button onclick="document.getElementById('fileReferens').click()" class="w-full py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-[10px] font-bold uppercase hover:bg-amber-500 hover:text-white transition-all mb-1">
+                    <i class="fa-solid fa-file-import mr-1"></i> Pilih File Aturan
+                </button>
+                <p id="selectedFileName" class="text-[9px] text-slate-400 text-center italic truncate mb-2"></p>
+                <button id="btnUploadGH" onclick="suntikAturanKeGitHub()" class="w-full py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-500 transition-all hidden">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Suntik ke GitHub
+                </button>
+            </div>
+
+            <div class="flex justify-between items-center my-3 px-1">
                 <label class="flex items-center gap-2 cursor-pointer group">
                     <input type="checkbox" id="saveToBrowser" class="w-3 h-3 text-skyblue bg-slate-900 border-slate-600 rounded focus:ring-skyblue focus:ring-1">
                     <span class="text-[10px] text-slate-400 group-hover:text-slate-200 transition-colors">Simpan di Browser</span>
@@ -92,64 +108,64 @@
 
         <nav class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
             
-            <div>
+            <div id="menuPuskesmas">
                 <p class="text-[10px] font-bold text-skyblue uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
                     <i class="fa-solid fa-hospital-user text-sm"></i> Puskesmas
                 </p>
                 <div class="space-y-1 pl-1">
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html', 'SK-Generator')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html', 'SOP Generator')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html', 'Profil IMP')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-chart-line w-5 text-center group-hover:scale-110 transition"></i> Profil IMP
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/index.html', 'Manajemen Risiko')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-shield-virus w-5 text-center group-hover:scale-110 transition"></i> Manajemen Risiko
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Audit/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Audit/index.html', 'Audit Internal')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-list-check w-5 text-center group-hover:scale-110 transition"></i> Audit Internal
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html', 'RCA Sederhana')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
                     </button>
                 </div>
             </div>
 
-            <div>
+            <div id="menuRS">
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
                     <i class="fa-solid fa-hospital text-sm"></i> Rumah Sakit
                 </p>
                 <div class="space-y-1 pl-1">
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html', 'SK-Generator (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html', 'SOP Generator (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html', 'RCA Sederhana (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
                     </button>
                 </div>
             </div>
 
-            <div>
+            <div id="menuKlinik">
                 <p class="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
                     <i class="fa-solid fa-stethoscope text-sm"></i> Klinik
                 </p>
                 <div class="space-y-1 pl-1">
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html', 'SK-Generator (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html', 'SOP Generator (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html', 'RCA Sederhana (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
                     </button>
-                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---AKREDITASI-KLINIK/')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---AKREDITASI-KLINIK/', 'Akreditasi Klinik')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-shield w-5 text-center group-hover:scale-110 transition"></i> Akreditasi Klinik
                     </button>
                 </div>
@@ -207,233 +223,300 @@
                     <li>Klik tombol <b>"Create API key"</b>, lalu salin (copy) kode kunci yang muncul.</li>
                     <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
                 </ol>
-                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
-                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan. Sistem secara otomatis mencoba semua kunci, dan jika gagal semua, akan menurunkan Model AI ke versi ringan agar tetap berjalan.</p>
-                </div>
                 <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- KONFIGURASI MODEL & ROTASI ---
-        // Tetap menggunakan gemini-2.5-flash sebagai prioritas utama
-        const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+        // --- KONFIGURASI GLOBAL ---
+        const GOOGLE_SHEETS_MONEV_URL = 'https://script.google.com/macros/s/AKfycbyBgWlUCkjFiFSi0J-RAZwk5MQ3KvtvUaZDgfkkz74aGglWdAp3niqtAzWptBR0kXCv/exec';
         
-        let currentKeyIndex = 0;
-        let currentModelIndex = 0;
-        let keysAttemptedForCurrentModel = 0; // Berapa key yang sudah dicoba di model saat ini
-        let consecutiveErrors = 0; // Penghitung total siklus otomatis
+        const GH_OWNER = 'alfan-23'; 
+        const GH_REPO = 'Sehati-Database-Referensi'; 
+        const GH_PATH = 'referensi'; 
+
+        let globalSystemReference = "";
+        let namaAplikasiAktif = "";
+        let base64FileContent = "";
+        let targetFileName = "";
+
+        const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+        let currentKeyIndex = 0; let currentModelIndex = 0;
+        let keysAttemptedForCurrentModel = 0; let consecutiveErrors = 0;
         const totalKeys = 4;
 
-        // --- FITUR AUTO-LOAD DARI LOCAL STORAGE ---
         window.addEventListener('DOMContentLoaded', () => {
+            const kategoriFasyankes = sessionStorage.getItem('kategori') || 'Puskesmas'; 
+            const unitKerja = sessionStorage.getItem('unitKerja') || kategoriFasyankes;
+            
+            const roleIndicator = document.getElementById('roleIndicator');
+            roleIndicator.innerText = unitKerja;
+            
+            if (kategoriFasyankes === 'Dinkes') {
+                document.getElementById('adminUploadBox').classList.remove('hidden');
+                roleIndicator.className = "text-[9px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold uppercase border border-amber-500/30";
+            } else if (kategoriFasyankes === 'Puskesmas') {
+                roleIndicator.className = "text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-500/30";
+            } else if (kategoriFasyankes === 'Rumah Sakit') {
+                roleIndicator.className = "text-[9px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full font-bold uppercase border border-rose-500/30";
+            } else if (kategoriFasyankes === 'Klinik') {
+                roleIndicator.className = "text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold uppercase border border-sky-500/30";
+            }
+
+            // PERBAIKAN BUG: Memanggil fungsi pembatasan menu secara otomatis saat halaman siap!
+            setMenuVisibility(kategoriFasyankes);
+
+            // 2. Load API Keys
             const savedKeys = localStorage.getItem('sehati_api_keys');
             if (savedKeys) {
                 try {
                     const keysArray = JSON.parse(savedKeys);
                     for (let i = 0; i < totalKeys; i++) {
-                        if (keysArray[i]) {
-                            document.getElementById(`api_key_${i}`).value = keysArray[i];
-                        }
+                        if (keysArray[i]) document.getElementById(`api_key_${i}`).value = keysArray[i];
                     }
                     document.getElementById('saveToBrowser').checked = true;
-                } catch (e) {
-                    console.error("Gagal memuat API keys dari storage.");
-                }
+                } catch (e) {}
             }
+
+            const savedPat = localStorage.getItem('sehati_gh_pat');
+            if (savedPat) document.getElementById('github_pat').value = savedPat;
+
+            // 3. Tarik Referensi Otomatis
+            tarikReferensiGlobal();
         });
 
-        function clearSavedKeys() {
-            if(confirm("Hapus semua API Key yang tersimpan di browser ini?")) {
-                localStorage.removeItem('sehati_api_keys');
-                for (let i = 0; i < totalKeys; i++) {
-                    document.getElementById(`api_key_${i}`).value = "";
+        // --- SISTEM PEMBACA FILE BINER (AMAN DARI ERROR KARAKTER) ---
+        function handleFileSelected(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            targetFileName = file.name.replace(/\s+/g, '_'); 
+            document.getElementById('selectedFileName').innerText = `Siap upload: ${file.name}`;
+            document.getElementById('btnUploadGH').classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                const bytes = new Uint8Array(arrayBuffer);
+                let binaryStr = "";
+                for (let i = 0; i < bytes.byteLength; i++) {
+                    binaryStr += String.fromCharCode(bytes[i]);
                 }
-                document.getElementById('saveToBrowser').checked = false;
-                alert("API Key telah dihapus dari memori browser.");
+                base64FileContent = btoa(binaryStr);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function suntikAturanKeGitHub() {
+            const patToken = document.getElementById('github_pat').value.trim();
+            if (!patToken) return alert("Masukkan GitHub PAT Token Anda terlebih dahulu.");
+            
+            if (document.getElementById('saveToBrowser').checked) {
+                localStorage.setItem('sehati_gh_pat', patToken);
+            }
+
+            const btn = document.getElementById('btnUploadGH');
+            btn.innerText = "Menyuntikkan Data...";
+            btn.disabled = true;
+
+            const urlApiSuntik = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}/${targetFileName}`;
+
+            try {
+                let shaStr = "";
+                const checkRes = await fetch(urlApiSuntik, {
+                    headers: { 'Authorization': `token ${patToken}` }
+                });
+                if (checkRes.ok) {
+                    const existingFileData = await checkRes.json();
+                    shaStr = existingFileData.sha;
+                }
+
+                const putRes = await fetch(urlApiSuntik, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${patToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Suntik file aturan: ${targetFileName} via Dashboard Portal`,
+                        content: base64FileContent,
+                        sha: shaStr ? shaStr : undefined
+                    })
+                });
+
+                if (putRes.ok) {
+                    alert(`BERHASIL! File ${targetFileName} telah disuntikkan ke dalam sistem.`);
+                    document.getElementById('selectedFileName').innerText = "";
+                    btn.classList.add('hidden');
+                    tarikReferensiGlobal();
+                } else {
+                    const errData = await putRes.json();
+                    alert(`Gagal Menyuntik Data: ${errData.message}`);
+                }
+
+            } catch (err) {
+                alert("Terjadi kesalahan jaringan saat menyuntik data.");
+            } finally {
+                btn.innerText = "Suntik ke GitHub";
+                btn.disabled = false;
             }
         }
 
-        // FUNGSI BUKA / TUTUP SIDEBAR
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('toggled');
+        async function tarikReferensiGlobal() {
+            const dbIcon = document.getElementById('dbIcon');
+            const dbText = document.getElementById('dbText');
+            try {
+                const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`);
+                if (!res.ok) throw new Error();
+                const files = await res.json();
+                let loadedCount = 0; globalSystemReference = ""; 
+                if(files.length > 0) {
+                    for(let file of files) {
+                        if(file.type === 'file' && file.download_url) {
+                            const textRes = await fetch(file.download_url);
+                            if(textRes.ok) {
+                                globalSystemReference += `\n\n[ATURAN DINKES - ${file.name}]\n${await textRes.text()}`;
+                                loadedCount++;
+                            }
+                        }
+                    }
+                }
+                dbIcon.className = "fa-solid fa-check-circle text-emerald-400";
+                dbText.innerText = `${loadedCount} Referensi aktif`;
+                dbText.className = "text-emerald-400 font-bold";
+                sendConfigToApp();
+            } catch (e) {
+                dbIcon.className = "fa-solid fa-triangle-exclamation text-amber-500";
+                dbText.innerText = "Database Dinkes offline";
+            }
         }
 
+        function catatKeGoogleSheets(statusAI) {
+            const fasyankesUser = sessionStorage.getItem('unitKerja') || sessionStorage.getItem('kategori') || 'Unknown';
+            const formData = new URLSearchParams();
+            formData.append('fasyankes', fasyankesUser);
+            formData.append('aplikasi', namaAplikasiAktif);
+            formData.append('status', statusAI);
+            fetch(GOOGLE_SHEETS_MONEV_URL, { method: 'POST', body: formData, mode: 'no-cors' }).catch(e => {});
+        }
+
+        function clearSavedKeys() {
+            if(confirm("Hapus semua data tersimpan?")) {
+                localStorage.clear();
+                for (let i = 0; i < totalKeys; i++) document.getElementById(`api_key_${i}`).value = "";
+                document.getElementById('github_pat').value = "";
+                document.getElementById('saveToBrowser').checked = false;
+            }
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('toggled'); }
         function showApiKeyGuide() { document.getElementById('guideModal').classList.remove('hidden'); }
         function closeGuide() { document.getElementById('guideModal').classList.add('hidden'); }
+        function getActiveApiKey() { return document.getElementById(`api_key_${currentKeyIndex}`)?.value.trim() || ""; }
+        function getActiveKeysCount() { return Array.from({length: totalKeys}).filter((_, i) => document.getElementById(`api_key_${i}`).value.trim()).length; }
 
-        function getActiveApiKey() {
-            const input = document.getElementById(`api_key_${currentKeyIndex}`);
-            return input ? input.value.trim() : "";
-        }
-
-        // UPDATE UI STATUS
         function updateStatusUI(statusText, colorClass) {
             const ind1 = document.getElementById('statusIndicator'); 
             const ind2 = document.getElementById('topStatusIndicator');
-            if(ind1) {
-                ind1.innerText = statusText;
-                ind1.className = `text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${colorClass}`;
-            }
-            if(ind2) {
-                ind2.innerText = statusText;
-                ind2.className = `text-[9px] px-3 py-1.5 rounded-full font-bold uppercase border shadow-sm ${colorClass}`;
-            }
+            if(ind1) { ind1.innerText = statusText; ind1.className = `text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${colorClass}`; }
+            if(ind2) { ind2.innerText = statusText; ind2.className = `text-[9px] px-3 py-1.5 rounded-full font-bold uppercase border shadow-sm ${colorClass}`; }
         }
 
-        function getActiveKeysCount() {
-            let count = 0;
-            for(let i=0; i<totalKeys; i++) {
-                if(document.getElementById(`api_key_${i}`).value.trim()) count++;
+        // Pembatasan Menu / Role Base Access Control (RBAC) Logic
+        function setMenuVisibility(kategoriFasyankes) {
+            const menuPuskesmas = document.getElementById('menuPuskesmas');
+            const menuRS = document.getElementById('menuRS');
+            const menuKlinik = document.getElementById('menuKlinik');
+
+            menuPuskesmas.classList.add('hidden');
+            menuRS.classList.add('hidden');
+            menuKlinik.classList.add('hidden');
+
+            if (kategoriFasyankes === 'Dinkes') {
+                menuPuskesmas.classList.remove('hidden');
+                menuRS.classList.remove('hidden');
+                menuKlinik.classList.remove('hidden');
+            } else if (kategoriFasyankes === 'Puskesmas') {
+                menuPuskesmas.classList.remove('hidden');
+            } else if (kategoriFasyankes === 'Rumah Sakit') {
+                menuRS.classList.remove('hidden');
+            } else if (kategoriFasyankes === 'Klinik') {
+                menuKlinik.classList.remove('hidden');
             }
-            return count;
         }
 
         function saveAndConnect() {
-            if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
-            
-            // --- SIMPAN KE LOCAL STORAGE JIKA DICENTANG ---
-            const isSaveChecked = document.getElementById('saveToBrowser').checked;
-            if (isSaveChecked) {
-                let keysToSave = [];
-                for (let i = 0; i < totalKeys; i++) {
-                    keysToSave.push(document.getElementById(`api_key_${i}`).value.trim());
-                }
-                localStorage.setItem('sehati_api_keys', JSON.stringify(keysToSave));
-            } else {
-                localStorage.removeItem('sehati_api_keys');
+            if(!getActiveApiKey()) return alert("Mohon isi minimal API Key Utama.");
+            if (document.getElementById('saveToBrowser').checked) {
+                localStorage.setItem('sehati_api_keys', JSON.stringify(Array.from({length: totalKeys}).map((_, i) => document.getElementById(`api_key_${i}`).value.trim())));
+                const pat = document.getElementById('github_pat').value.trim();
+                if(pat) localStorage.setItem('sehati_gh_pat', pat);
             }
-
-            // Reset rotasi ke awal
-            currentKeyIndex = 0;
-            currentModelIndex = 0;
-            keysAttemptedForCurrentModel = 0;
-            consecutiveErrors = 0;
-            
-            // Pastikan slot 1 benar-benar ada isinya, jika tidak, cari slot pertama yang ada isinya
-            if(!getActiveApiKey()) {
-                for(let i=0; i<totalKeys; i++) {
-                    if(document.getElementById(`api_key_${i}`).value.trim()) { currentKeyIndex = i; break; }
-                }
-            }
-
-            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
-            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-green-500/20 text-green-600 border-green-300");
-            
-            // Perbarui frame jika sedang ada aplikasi yang terbuka
+            currentKeyIndex = 0; currentModelIndex = 0; keysAttemptedForCurrentModel = 0; consecutiveErrors = 0;
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${aiModels[currentModelIndex].split('-')[1].toUpperCase()}`, "bg-green-500/20 text-green-600 border-green-300");
             sendConfigToApp();
-            alert("API Key & Pengaturan AI berhasil disimpan.");
+            alert("Pengaturan berhasil disimpan.");
         }
 
         function rotateConfig() {
-            const activeKeysCount = getActiveKeysCount();
-            if(activeKeysCount === 0) return;
-
+            const activeKeys = getActiveKeysCount();
+            if(activeKeys === 0) return;
             keysAttemptedForCurrentModel++;
-
-            // Jika semua kunci di model ini gagal, baru ganti modelnya
-            if (keysAttemptedForCurrentModel >= activeKeysCount) {
+            if (keysAttemptedForCurrentModel >= activeKeys) {
                 currentModelIndex = (currentModelIndex + 1) % aiModels.length;
-                keysAttemptedForCurrentModel = 0; // Reset counter untuk model baru
-                console.warn(`[SEHATI Dashboard] Semua kunci di model ini gagal. Menurunkan model ke: ${aiModels[currentModelIndex]}`);
-                
-                // Kembalikan putaran ke API Key terisi yang PERTAMA
-                for(let i=0; i<totalKeys; i++) {
-                    if(document.getElementById(`api_key_${i}`).value.trim()) { 
-                        currentKeyIndex = i; 
-                        break; 
-                    }
-                }
+                keysAttemptedForCurrentModel = 0; 
+                currentKeyIndex = Array.from({length: totalKeys}).findIndex((_, i) => document.getElementById(`api_key_${i}`).value.trim());
             } else {
-                // Belum semua kunci dicoba, lanjut ke slot API key berikutnya
                 let attempts = 0;
                 while(attempts < totalKeys) {
                     currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
-                    if(getActiveApiKey()) { break; }
+                    if(getActiveApiKey()) break;
                     attempts++;
                 }
             }
-
-            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
-            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-amber-500/20 text-amber-600 border-amber-300");
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${aiModels[currentModelIndex].split('-')[1].toUpperCase()}`, "bg-amber-500/20 text-amber-600 border-amber-300");
             sendConfigToApp();
         }
 
         function sendConfigToApp() {
             const frame = document.getElementById('appFrame');
             const key = getActiveApiKey();
-            const model = aiModels[currentModelIndex];
             if (frame && frame.contentWindow && key) {
-                frame.contentWindow.postMessage({ type: 'UPDATE_CONFIG', key: key, model: model }, '*');
+                frame.contentWindow.postMessage({ type: 'UPDATE_CONFIG', key: key, model: aiModels[currentModelIndex], contextReference: globalSystemReference }, '*');
             }
         }
 
-        function loadApp(url) {
+        function loadApp(url, namaAplikasi) {
             const key = getActiveApiKey();
-            const model = aiModels[currentModelIndex];
-            
-            if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
-            
-            // Tutup sidebar di mobile saat menu ditekan
-            if(window.innerWidth < 768) {
-                document.getElementById('sidebar').classList.remove('toggled'); 
-            }
-            
+            if(!key) return alert("Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu.");
+            if(window.innerWidth < 768) document.getElementById('sidebar').classList.remove('toggled'); 
             document.getElementById('welcomeScreen').classList.add('hidden');
             const frame = document.getElementById('appFrame');
             frame.classList.remove('hidden');
-            
-            // Kirim parameter kunci dan model melalui URL untuk inisiasi awal
-            frame.src = `${url}?key=${encodeURIComponent(key)}&model=${encodeURIComponent(model)}`;
+            frame.src = `${url}?key=${encodeURIComponent(key)}&model=${encodeURIComponent(aiModels[currentModelIndex])}`;
+            namaAplikasiAktif = namaAplikasi || url.split('/').pop().replace('.html', '');
+            catatKeGoogleSheets("Membuka Aplikasi");
         }
 
-        // MENERIMA SINYAL DARI APLIKASI ANAK (IFRAME)
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
-            
-            if (event.data.type === 'REQUEST_CONFIG') {
-                sendConfigToApp();
-            }
-
-            // Jika aplikasi berhasil generate, reset putaran error
-            if (event.data.type === 'API_SUCCESS') {
-                consecutiveErrors = 0; 
-                keysAttemptedForCurrentModel = 0;
-            }
-
-            // Tangkap sinyal error dari aplikasi
+            if (event.data.type === 'REQUEST_CONFIG') sendConfigToApp();
+            if (event.data.type === 'API_SUCCESS') { consecutiveErrors = 0; keysAttemptedForCurrentModel = 0; catatKeGoogleSheets("Dokumen Berhasil Dibuat"); }
             if (event.data.type === 'API_ERROR') {
-                const activeKeys = getActiveKeysCount();
-                if (activeKeys === 0) return;
-
-                consecutiveErrors++;
-                const maxAttempts = activeKeys * aiModels.length; // Total semua kombinasi
-
-                // Pencegah Infinite Loop (Gagal di semua key & semua model)
-                if (consecutiveErrors >= maxAttempts) {
-                    console.warn(`[SEHATI Dashboard] Semua kombinasi gagal (${maxAttempts} percobaan).`);
+                const activeKeys = getActiveKeysCount(); if (activeKeys === 0) return;
+                consecutiveErrors++; catatKeGoogleSheets(`Gagal (Error ${event.data.code})`);
+                if (consecutiveErrors >= activeKeys * aiModels.length) {
                     updateStatusUI(`ERROR TOTAL`, "bg-red-500/20 text-red-600 border-red-300");
-                    
                     const frame = document.getElementById('appFrame');
-                    if (frame && frame.contentWindow) {
-                        frame.contentWindow.postMessage({ type: 'STOP_RETRY' }, '*');
-                    }
-                    consecutiveErrors = 0; // Reset agar bisa dicoba manual lagi nanti
-                    keysAttemptedForCurrentModel = 0;
+                    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'STOP_RETRY' }, '*');
                     return;
                 }
-
-                console.warn(`[SEHATI Dashboard] Error API (Kode: ${event.data.code}). Rotasi otomatis ke-${consecutiveErrors}/${maxAttempts}...`);
-                
-                // Tambahkan jeda 2 detik sebelum memutar ke API/Model berikutnya
-                setTimeout(() => {
-                    rotateConfig();
-                }, 2000);
+                setTimeout(rotateConfig, 2000);
             }
         });
 
-        function logout() { sessionStorage.clear(); window.location.reload(); }
+        function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
