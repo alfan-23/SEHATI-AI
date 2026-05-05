@@ -73,27 +73,16 @@
                 <input type="password" id="api_key_3" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 4 (Cadangan 3)">
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 pt-3 border-t border-slate-700">
+                <label class="block text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-database mr-1"></i> Database Aturan</label>
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-700 text-[9px] flex items-center gap-2 text-slate-400">
                     <i id="dbIcon" class="fa-solid fa-spinner spin-anim text-skyblue"></i>
-                    <span id="dbText">Menarik Aturan Dinkes...</span>
+                    <span id="dbText">Menarik Sinkronisasi GitHub...</span>
                 </div>
+                <p class="text-[8px] text-slate-500 mt-1.5 italic">*Referensi terhubung ke aplikasi secara otomatis.</p>
             </div>
 
-            <div id="adminUploadBox" class="hidden border-t border-slate-700 pt-3 mt-3">
-                <label class="block text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Portal Suntik Aturan (Dinkes)</label>
-                <input type="password" id="github_pat" class="w-full text-[11px] px-3 py-1.5 border border-slate-600 bg-slate-950 rounded-lg text-white mb-2" placeholder="🔐 GitHub PAT (github_pat_...)">
-                <input type="file" id="fileReferens" accept=".txt,.json,.md" class="hidden" onchange="handleFileSelected(this)">
-                <button onclick="document.getElementById('fileReferens').click()" class="w-full py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-lg text-[10px] font-bold uppercase hover:bg-amber-500 hover:text-white transition-all mb-1">
-                    <i class="fa-solid fa-file-import mr-1"></i> Pilih File Aturan
-                </button>
-                <p id="selectedFileName" class="text-[9px] text-slate-400 text-center italic truncate mb-2"></p>
-                <button id="btnUploadGH" onclick="suntikAturanKeGitHub()" class="w-full py-1.5 bg-emerald-600 text-white rounded-lg text-[10px] font-bold uppercase hover:bg-emerald-500 transition-all hidden">
-                    <i class="fa-solid fa-paper-plane mr-1"></i> Suntik ke GitHub
-                </button>
-            </div>
-
-            <div class="flex justify-between items-center my-3 px-1">
+            <div class="flex justify-between items-center my-3 px-1 border-t border-slate-700 pt-3">
                 <label class="flex items-center gap-2 cursor-pointer group">
                     <input type="checkbox" id="saveToBrowser" class="w-3 h-3 text-skyblue bg-slate-900 border-slate-600 rounded focus:ring-skyblue focus:ring-1">
                     <span class="text-[10px] text-slate-400 group-hover:text-slate-200 transition-colors">Simpan di Browser</span>
@@ -238,8 +227,6 @@
 
         let globalSystemReference = "";
         let namaAplikasiAktif = "";
-        let base64FileContent = "";
-        let targetFileName = "";
 
         const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
         let currentKeyIndex = 0; let currentModelIndex = 0;
@@ -254,7 +241,6 @@
             roleIndicator.innerText = unitKerja;
             
             if (kategoriFasyankes === 'Dinkes') {
-                document.getElementById('adminUploadBox').classList.remove('hidden');
                 roleIndicator.className = "text-[9px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold uppercase border border-amber-500/30";
             } else if (kategoriFasyankes === 'Puskesmas') {
                 roleIndicator.className = "text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase border border-emerald-500/30";
@@ -264,10 +250,8 @@
                 roleIndicator.className = "text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold uppercase border border-sky-500/30";
             }
 
-            // PERBAIKAN BUG: Memanggil fungsi pembatasan menu secara otomatis saat halaman siap!
             setMenuVisibility(kategoriFasyankes);
 
-            // 2. Load API Keys
             const savedKeys = localStorage.getItem('sehati_api_keys');
             if (savedKeys) {
                 try {
@@ -279,89 +263,9 @@
                 } catch (e) {}
             }
 
-            const savedPat = localStorage.getItem('sehati_gh_pat');
-            if (savedPat) document.getElementById('github_pat').value = savedPat;
-
-            // 3. Tarik Referensi Otomatis
+            // Tarik Referensi Otomatis dari GitHub saat Dasbor Dibuka
             tarikReferensiGlobal();
         });
-
-        // --- SISTEM PEMBACA FILE BINER (AMAN DARI ERROR KARAKTER) ---
-        function handleFileSelected(input) {
-            const file = input.files[0];
-            if (!file) return;
-            
-            targetFileName = file.name.replace(/\s+/g, '_'); 
-            document.getElementById('selectedFileName').innerText = `Siap upload: ${file.name}`;
-            document.getElementById('btnUploadGH').classList.remove('hidden');
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const arrayBuffer = e.target.result;
-                const bytes = new Uint8Array(arrayBuffer);
-                let binaryStr = "";
-                for (let i = 0; i < bytes.byteLength; i++) {
-                    binaryStr += String.fromCharCode(bytes[i]);
-                }
-                base64FileContent = btoa(binaryStr);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        async function suntikAturanKeGitHub() {
-            const patToken = document.getElementById('github_pat').value.trim();
-            if (!patToken) return alert("Masukkan GitHub PAT Token Anda terlebih dahulu.");
-            
-            if (document.getElementById('saveToBrowser').checked) {
-                localStorage.setItem('sehati_gh_pat', patToken);
-            }
-
-            const btn = document.getElementById('btnUploadGH');
-            btn.innerText = "Menyuntikkan Data...";
-            btn.disabled = true;
-
-            const urlApiSuntik = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}/${targetFileName}`;
-
-            try {
-                let shaStr = "";
-                const checkRes = await fetch(urlApiSuntik, {
-                    headers: { 'Authorization': `token ${patToken}` }
-                });
-                if (checkRes.ok) {
-                    const existingFileData = await checkRes.json();
-                    shaStr = existingFileData.sha;
-                }
-
-                const putRes = await fetch(urlApiSuntik, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${patToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        message: `Suntik file aturan: ${targetFileName} via Dashboard Portal`,
-                        content: base64FileContent,
-                        sha: shaStr ? shaStr : undefined
-                    })
-                });
-
-                if (putRes.ok) {
-                    alert(`BERHASIL! File ${targetFileName} telah disuntikkan ke dalam sistem.`);
-                    document.getElementById('selectedFileName').innerText = "";
-                    btn.classList.add('hidden');
-                    tarikReferensiGlobal();
-                } else {
-                    const errData = await putRes.json();
-                    alert(`Gagal Menyuntik Data: ${errData.message}`);
-                }
-
-            } catch (err) {
-                alert("Terjadi kesalahan jaringan saat menyuntik data.");
-            } finally {
-                btn.innerText = "Suntik ke GitHub";
-                btn.disabled = false;
-            }
-        }
 
         async function tarikReferensiGlobal() {
             const dbIcon = document.getElementById('dbIcon');
@@ -383,12 +287,12 @@
                     }
                 }
                 dbIcon.className = "fa-solid fa-check-circle text-emerald-400";
-                dbText.innerText = `${loadedCount} Referensi aktif`;
+                dbText.innerText = `${loadedCount} Referensi sinkron`;
                 dbText.className = "text-emerald-400 font-bold";
                 sendConfigToApp();
             } catch (e) {
                 dbIcon.className = "fa-solid fa-triangle-exclamation text-amber-500";
-                dbText.innerText = "Database Dinkes offline";
+                dbText.innerText = "Database aturan kosong/offline";
             }
         }
 
@@ -402,10 +306,9 @@
         }
 
         function clearSavedKeys() {
-            if(confirm("Hapus semua data tersimpan?")) {
-                localStorage.clear();
+            if(confirm("Hapus semua kunci API tersimpan?")) {
+                localStorage.removeItem('sehati_api_keys');
                 for (let i = 0; i < totalKeys; i++) document.getElementById(`api_key_${i}`).value = "";
-                document.getElementById('github_pat').value = "";
                 document.getElementById('saveToBrowser').checked = false;
             }
         }
@@ -423,7 +326,6 @@
             if(ind2) { ind2.innerText = statusText; ind2.className = `text-[9px] px-3 py-1.5 rounded-full font-bold uppercase border shadow-sm ${colorClass}`; }
         }
 
-        // Pembatasan Menu / Role Base Access Control (RBAC) Logic
         function setMenuVisibility(kategoriFasyankes) {
             const menuPuskesmas = document.getElementById('menuPuskesmas');
             const menuRS = document.getElementById('menuRS');
@@ -447,16 +349,14 @@
         }
 
         function saveAndConnect() {
-            if(!getActiveApiKey()) return alert("Mohon isi minimal API Key Utama.");
+            if(!getActiveApiKey()) return alert("Mohon isi minimal API Key Utama (Slot 1).");
             if (document.getElementById('saveToBrowser').checked) {
                 localStorage.setItem('sehati_api_keys', JSON.stringify(Array.from({length: totalKeys}).map((_, i) => document.getElementById(`api_key_${i}`).value.trim())));
-                const pat = document.getElementById('github_pat').value.trim();
-                if(pat) localStorage.setItem('sehati_gh_pat', pat);
             }
             currentKeyIndex = 0; currentModelIndex = 0; keysAttemptedForCurrentModel = 0; consecutiveErrors = 0;
             updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${aiModels[currentModelIndex].split('-')[1].toUpperCase()}`, "bg-green-500/20 text-green-600 border-green-300");
             sendConfigToApp();
-            alert("Pengaturan berhasil disimpan.");
+            alert("Sistem AI siap digunakan.");
         }
 
         function rotateConfig() {
