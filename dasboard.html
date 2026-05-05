@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard SEHATI - AI | alfan-23</title>
+    
+    <script>
+        (function() {
+            const allowedDomain = "alfan-23.github.io";
+            const currentDomain = window.location.hostname;
+            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
+                document.documentElement.innerHTML = `<div style="text-align:center; margin-top:20%;"><h1>LISENSI TIDAK VALID</h1></div>`;
+                throw new Error("Unauthorized Access");
+            }
+            if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
+                // Hapus komentar di bawah ini jika halaman login sudah ada
+                // window.location.href = 'index.html';
+            }
+        })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { navy: '#1e293b', skyblue: '#38bdf8' }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+    </script>
+    <style>
+        /* Pengaturan Animasi Geser Sidebar untuk Mobile dan Desktop */
+        #sidebar { transition: margin 0.3s ease, transform 0.3s ease; }
+        
+        /* Mobile: Secara bawaan tertutup (geser kiri) */
+        @media (max-width: 767px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.toggled { transform: translateX(0); }
+        }
+        
+        /* Desktop: Secara bawaan terbuka (margin 0) */
+        @media (min-width: 768px) {
+            #sidebar { margin-left: 0; }
+            #sidebar.toggled { margin-left: -18rem; /* Menyembunyikan sidebar (w-72 = 18rem) */ }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; } 
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-100 h-[100dvh] flex overflow-hidden">
+
+    <aside id="sidebar" class="fixed md:relative w-72 bg-navy text-white h-full flex flex-col shadow-2xl z-40 flex-shrink-0">
+        
+        <div class="p-5 border-b border-slate-700 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-skyblue rounded-lg flex items-center justify-center font-bold text-navy"><i class="fa-solid fa-brain"></i></div>
+                <div>
+                    <h2 class="font-bold text-lg text-skyblue leading-tight">SEHATI - AI</h2>
+                    <span id="statusIndicator" class="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold uppercase border border-red-500/30">Offline</span>
+                </div>
+            </div>
+            <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+
+        <div class="p-4 bg-slate-800/40 border-b border-slate-700">
+            <div class="flex justify-between items-center mb-3">
+                <label class="block text-[10px] font-bold text-skyblue uppercase tracking-widest"><i class="fa-solid fa-key mr-1"></i> Pengaturan AI</label>
+                <div class="flex gap-2">
+                    <button onclick="showApiKeyGuide()" class="text-[9px] text-amber-400 hover:text-amber-300 flex items-center gap-1"><i class="fa-solid fa-circle-question"></i> Panduan</button>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[9px] text-slate-400 hover:text-skyblue flex items-center gap-1"><i class="fa-solid fa-circle-info"></i> Link</a>
+                </div>
+            </div>
+            <p class="text-[9px] text-slate-400 mb-3 leading-tight">Sistem memutar semua Slot API Key. Jika gagal, otomatis turun ke Model cadangan.</p>
+            <div class="space-y-2 mb-3">
+                <input type="password" id="api_key_0" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🔑 Slot 1 (Key Utama)">
+                <input type="password" id="api_key_1" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 2 (Cadangan 1)">
+                <input type="password" id="api_key_2" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 3 (Cadangan 2)">
+                <input type="password" id="api_key_3" class="w-full text-[11px] px-3 py-2 border border-slate-600 bg-slate-950 rounded-lg focus:ring-1 focus:ring-skyblue outline-none text-white shadow-inner" placeholder="🛡️ Slot 4 (Cadangan 3)">
+            </div>
+
+            <div class="flex justify-between items-center mb-4 px-1">
+                <label class="flex items-center gap-2 cursor-pointer group">
+                    <input type="checkbox" id="saveToBrowser" class="w-3 h-3 text-skyblue bg-slate-900 border-slate-600 rounded focus:ring-skyblue focus:ring-1">
+                    <span class="text-[10px] text-slate-400 group-hover:text-slate-200 transition-colors">Simpan di Browser</span>
+                </label>
+                <button onclick="clearSavedKeys()" class="text-[9px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1">
+                    <i class="fa-solid fa-trash-can"></i> Hapus Key
+                </button>
+            </div>
+
+            <button onclick="saveAndConnect()" class="w-full py-2 bg-skyblue/10 border border-skyblue/30 text-skyblue rounded-lg text-[10px] font-bold uppercase hover:bg-skyblue hover:text-white transition-all">Simpan & Hubungkan</button>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
+            
+            <div>
+                <p class="text-[10px] font-bold text-skyblue uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
+                    <i class="fa-solid fa-hospital-user text-sm"></i> Puskesmas
+                </p>
+                <div class="space-y-1 pl-1">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Profil-IMP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-chart-line w-5 text-center group-hover:scale-110 transition"></i> Profil IMP
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---Manrisk/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-shield-virus w-5 text-center group-hover:scale-110 transition"></i> Manajemen Risiko
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-Audit/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-list-check w-5 text-center group-hover:scale-110 transition"></i> Audit Internal
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
+                    <i class="fa-solid fa-hospital text-sm"></i> Rumah Sakit
+                </p>
+                <div class="space-y-1 pl-1">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2">
+                    <i class="fa-solid fa-stethoscope text-sm"></i> Klinik
+                </p>
+                <div class="space-y-1 pl-1">
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SK/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-signature w-5 text-center group-hover:scale-110 transition"></i> SK-Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---SOP/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-invoice w-5 text-center group-hover:scale-110 transition"></i> SOP Generator
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati---AKREDITASI-KLINIK/')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-shield w-5 text-center group-hover:scale-110 transition"></i> Akreditasi Klinik
+                    </button>
+                    <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                        <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
+                    </button>
+                </div>
+            </div>
+
+        </nav>
+
+        <div class="p-4 border-t border-slate-700">
+            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all text-[10px] font-bold uppercase">
+                <i class="fa-solid fa-power-off"></i> Keluar Portal
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 h-full relative">
+        
+        <header class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between z-30 shadow-sm">
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSidebar()" class="p-2 text-slate-600 hover:text-navy hover:bg-slate-100 rounded-lg transition-colors focus:outline-none">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <span class="font-bold text-navy text-sm hidden md:block tracking-wide">Workspace SEHATI</span>
+                <span class="font-bold text-navy text-sm md:hidden tracking-wide">SEHATI - AI</span>
+            </div>
+            
+            <div id="topStatusIndicator" class="text-[9px] bg-red-500/20 text-red-600 px-3 py-1.5 rounded-full font-bold uppercase border border-red-200 shadow-sm">
+                OFFLINE
+            </div>
+        </header>
+
+        <div class="flex-1 relative overflow-hidden bg-slate-100">
+            <div id="welcomeScreen" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+                <div class="w-24 h-24 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-6 border-4 border-slate-100 relative">
+                    <i class="fa-solid fa-robot text-4xl text-slate-300"></i>
+                    <div class="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center animate-bounce shadow"><i class="fa-solid fa-key text-[10px] text-white"></i></div>
+                </div>
+                <h2 class="text-2xl font-bold text-navy tracking-tight mb-2">Sistem AI Menunggu Konfigurasi</h2>
+                <p class="text-slate-500 text-sm max-w-sm">Buka Menu Bar, isi minimal <b>Slot 1 (Key Utama)</b>, klik <b>Simpan & Hubungkan</b>, lalu pilih modul aplikasi.</p>
+            </div>
+            <iframe id="appFrame" class="w-full h-full bg-white hidden border-none" src="about:blank"></iframe>
+        </div>
+    </main>
+
+    <div id="guideModal" class="hidden fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="bg-navy p-6 text-white flex justify-between items-center">
+                <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-400"></i> Cara Mendapatkan API Key</h3>
+                <button onclick="closeGuide()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-8 space-y-4">
+                <ol class="space-y-4 text-sm text-slate-600 list-decimal pl-4 font-medium">
+                    <li>Kunjungi situs resmi <b>Google AI Studio</b>.</li>
+                    <li>Login menggunakan <b>Akun Google</b> Anda.</li>
+                    <li>Klik tombol biru bertuliskan <b>"Get API key"</b> di menu sebelah kiri.</li>
+                    <li>Klik tombol <b>"Create API key"</b>, lalu salin (copy) kode kunci yang muncul.</li>
+                    <li>Tempelkan (paste) kunci tersebut ke <b>Slot 1</b> di Dashboard ini, lalu klik <b>Simpan & Hubungkan</b>.</li>
+                </ol>
+                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mt-6">
+                    <p class="text-[10px] text-blue-700 leading-relaxed font-bold italic">Catatan: Gunakan Slot 2, 3, dan 4 untuk kunci cadangan. Sistem secara otomatis mencoba semua kunci, dan jika gagal semua, akan menurunkan Model AI ke versi ringan agar tetap berjalan.</p>
+                </div>
+                <button onclick="closeGuide()" class="w-full py-3 bg-navy text-white font-bold rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Saya Mengerti</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURASI MODEL & ROTASI ---
+        // Tetap menggunakan gemini-2.5-flash sebagai prioritas utama
+        const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+        
+        let currentKeyIndex = 0;
+        let currentModelIndex = 0;
+        let keysAttemptedForCurrentModel = 0; // Berapa key yang sudah dicoba di model saat ini
+        let consecutiveErrors = 0; // Penghitung total siklus otomatis
+        const totalKeys = 4;
+
+        // --- FITUR AUTO-LOAD DARI LOCAL STORAGE ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKeys = localStorage.getItem('sehati_api_keys');
+            if (savedKeys) {
+                try {
+                    const keysArray = JSON.parse(savedKeys);
+                    for (let i = 0; i < totalKeys; i++) {
+                        if (keysArray[i]) {
+                            document.getElementById(`api_key_${i}`).value = keysArray[i];
+                        }
+                    }
+                    document.getElementById('saveToBrowser').checked = true;
+                } catch (e) {
+                    console.error("Gagal memuat API keys dari storage.");
+                }
+            }
+        });
+
+        function clearSavedKeys() {
+            if(confirm("Hapus semua API Key yang tersimpan di browser ini?")) {
+                localStorage.removeItem('sehati_api_keys');
+                for (let i = 0; i < totalKeys; i++) {
+                    document.getElementById(`api_key_${i}`).value = "";
+                }
+                document.getElementById('saveToBrowser').checked = false;
+                alert("API Key telah dihapus dari memori browser.");
+            }
+        }
+
+        // FUNGSI BUKA / TUTUP SIDEBAR
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('toggled');
+        }
+
+        function showApiKeyGuide() { document.getElementById('guideModal').classList.remove('hidden'); }
+        function closeGuide() { document.getElementById('guideModal').classList.add('hidden'); }
+
+        function getActiveApiKey() {
+            const input = document.getElementById(`api_key_${currentKeyIndex}`);
+            return input ? input.value.trim() : "";
+        }
+
+        // UPDATE UI STATUS
+        function updateStatusUI(statusText, colorClass) {
+            const ind1 = document.getElementById('statusIndicator'); 
+            const ind2 = document.getElementById('topStatusIndicator');
+            if(ind1) {
+                ind1.innerText = statusText;
+                ind1.className = `text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${colorClass}`;
+            }
+            if(ind2) {
+                ind2.innerText = statusText;
+                ind2.className = `text-[9px] px-3 py-1.5 rounded-full font-bold uppercase border shadow-sm ${colorClass}`;
+            }
+        }
+
+        function getActiveKeysCount() {
+            let count = 0;
+            for(let i=0; i<totalKeys; i++) {
+                if(document.getElementById(`api_key_${i}`).value.trim()) count++;
+            }
+            return count;
+        }
+
+        function saveAndConnect() {
+            if(!getActiveApiKey()) { alert("Mohon isi minimal API Key Utama (Slot 1)."); return; }
+            
+            // --- SIMPAN KE LOCAL STORAGE JIKA DICENTANG ---
+            const isSaveChecked = document.getElementById('saveToBrowser').checked;
+            if (isSaveChecked) {
+                let keysToSave = [];
+                for (let i = 0; i < totalKeys; i++) {
+                    keysToSave.push(document.getElementById(`api_key_${i}`).value.trim());
+                }
+                localStorage.setItem('sehati_api_keys', JSON.stringify(keysToSave));
+            } else {
+                localStorage.removeItem('sehati_api_keys');
+            }
+
+            // Reset rotasi ke awal
+            currentKeyIndex = 0;
+            currentModelIndex = 0;
+            keysAttemptedForCurrentModel = 0;
+            consecutiveErrors = 0;
+            
+            // Pastikan slot 1 benar-benar ada isinya, jika tidak, cari slot pertama yang ada isinya
+            if(!getActiveApiKey()) {
+                for(let i=0; i<totalKeys; i++) {
+                    if(document.getElementById(`api_key_${i}`).value.trim()) { currentKeyIndex = i; break; }
+                }
+            }
+
+            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-green-500/20 text-green-600 border-green-300");
+            
+            // Perbarui frame jika sedang ada aplikasi yang terbuka
+            sendConfigToApp();
+            alert("API Key & Pengaturan AI berhasil disimpan.");
+        }
+
+        function rotateConfig() {
+            const activeKeysCount = getActiveKeysCount();
+            if(activeKeysCount === 0) return;
+
+            keysAttemptedForCurrentModel++;
+
+            // Jika semua kunci di model ini gagal, baru ganti modelnya
+            if (keysAttemptedForCurrentModel >= activeKeysCount) {
+                currentModelIndex = (currentModelIndex + 1) % aiModels.length;
+                keysAttemptedForCurrentModel = 0; // Reset counter untuk model baru
+                console.warn(`[SEHATI Dashboard] Semua kunci di model ini gagal. Menurunkan model ke: ${aiModels[currentModelIndex]}`);
+                
+                // Kembalikan putaran ke API Key terisi yang PERTAMA
+                for(let i=0; i<totalKeys; i++) {
+                    if(document.getElementById(`api_key_${i}`).value.trim()) { 
+                        currentKeyIndex = i; 
+                        break; 
+                    }
+                }
+            } else {
+                // Belum semua kunci dicoba, lanjut ke slot API key berikutnya
+                let attempts = 0;
+                while(attempts < totalKeys) {
+                    currentKeyIndex = (currentKeyIndex + 1) % totalKeys;
+                    if(getActiveApiKey()) { break; }
+                    attempts++;
+                }
+            }
+
+            const modelName = aiModels[currentModelIndex].split('-')[1].toUpperCase();
+            updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${modelName}`, "bg-amber-500/20 text-amber-600 border-amber-300");
+            sendConfigToApp();
+        }
+
+        function sendConfigToApp() {
+            const frame = document.getElementById('appFrame');
+            const key = getActiveApiKey();
+            const model = aiModels[currentModelIndex];
+            if (frame && frame.contentWindow && key) {
+                frame.contentWindow.postMessage({ type: 'UPDATE_CONFIG', key: key, model: model }, '*');
+            }
+        }
+
+        function loadApp(url) {
+            const key = getActiveApiKey();
+            const model = aiModels[currentModelIndex];
+            
+            if(!key) { alert("PENTING: Harap isi API Key dan klik 'Simpan & Hubungkan' dahulu."); return; }
+            
+            // Tutup sidebar di mobile saat menu ditekan
+            if(window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.remove('toggled'); 
+            }
+            
+            document.getElementById('welcomeScreen').classList.add('hidden');
+            const frame = document.getElementById('appFrame');
+            frame.classList.remove('hidden');
+            
+            // Kirim parameter kunci dan model melalui URL untuk inisiasi awal
+            frame.src = `${url}?key=${encodeURIComponent(key)}&model=${encodeURIComponent(model)}`;
+        }
+
+        // MENERIMA SINYAL DARI APLIKASI ANAK (IFRAME)
+        window.addEventListener('message', async (event) => {
+            if (!event.data || !event.data.type) return;
+            
+            if (event.data.type === 'REQUEST_CONFIG') {
+                sendConfigToApp();
+            }
+
+            // Jika aplikasi berhasil generate, reset putaran error
+            if (event.data.type === 'API_SUCCESS') {
+                consecutiveErrors = 0; 
+                keysAttemptedForCurrentModel = 0;
+            }
+
+            // Tangkap sinyal error dari aplikasi
+            if (event.data.type === 'API_ERROR') {
+                const activeKeys = getActiveKeysCount();
+                if (activeKeys === 0) return;
+
+                consecutiveErrors++;
+                const maxAttempts = activeKeys * aiModels.length; // Total semua kombinasi
+
+                // Pencegah Infinite Loop (Gagal di semua key & semua model)
+                if (consecutiveErrors >= maxAttempts) {
+                    console.warn(`[SEHATI Dashboard] Semua kombinasi gagal (${maxAttempts} percobaan).`);
+                    updateStatusUI(`ERROR TOTAL`, "bg-red-500/20 text-red-600 border-red-300");
+                    
+                    const frame = document.getElementById('appFrame');
+                    if (frame && frame.contentWindow) {
+                        frame.contentWindow.postMessage({ type: 'STOP_RETRY' }, '*');
+                    }
+                    consecutiveErrors = 0; // Reset agar bisa dicoba manual lagi nanti
+                    keysAttemptedForCurrentModel = 0;
+                    return;
+                }
+
+                console.warn(`[SEHATI Dashboard] Error API (Kode: ${event.data.code}). Rotasi otomatis ke-${consecutiveErrors}/${maxAttempts}...`);
+                
+                // Tambahkan jeda 2 detik sebelum memutar ke API/Model berikutnya
+                setTimeout(() => {
+                    rotateConfig();
+                }, 2000);
+            }
+        });
+
+        function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+    </script>
+</body>
+</html>
