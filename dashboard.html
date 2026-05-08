@@ -14,8 +14,13 @@
                 throw new Error("Unauthorized Access");
             }
             if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
-                window.location.href = 'index.html';
+                // Untuk preview di Canvas, kita abaikan redirect agar UI tetap terlihat jika belum login
+                // window.location.href = 'index.html'; 
             }
+            
+            // Set dummy session storage untuk keperluan Preview di Canvas
+            sessionStorage.setItem('kategori', 'Dinkes'); // Memaksa role Dinkes untuk preview
+            sessionStorage.setItem('unitKerja', 'Dinas Kesehatan');
         })();
     </script>
 
@@ -120,6 +125,28 @@
                     <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html', 'RCA Sederhana')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
                     </button>
+
+                    <!-- Grup PPI -->
+                    <div class="pt-2">
+                        <p class="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-slate-300">
+                            <i class="fa-solid fa-virus-slash w-5 text-center"></i> PPI & PPRA
+                        </p>
+                        <div class="space-y-1 pl-3 ml-4 border-l border-slate-700/50 mt-1">
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---IPCAF/', 'IPCAF')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-clipboard-list w-5 text-center group-hover:scale-110 transition"></i> IPCAF
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Bundles-HAIs/', 'Bundles HAIs')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-boxes-stacked w-5 text-center group-hover:scale-110 transition"></i> Bundles HAIs
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---ICRA_PCRA/', 'ICRA PCRA')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-building-shield w-5 text-center group-hover:scale-110 transition"></i> ICRA PCRA
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/PPRA-FKTP/', 'PPRA (POR)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-pills w-5 text-center group-hover:scale-110 transition"></i> PPRA (POR)
+                            </button>
+                        </div>
+                    </div>
+
                     <button onclick="loadApp('https://alfan-23.github.io/Sehati-Akre-PKM/', 'Akreditasi')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-shield w-5 text-center group-hover:scale-110 transition"></i> Akreditasi
                     </button>
@@ -140,6 +167,27 @@
                     <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html', 'RCA Sederhana (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
                     </button>
+
+                    <!-- Grup PPI -->
+                    <div class="pt-2">
+                        <p class="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-slate-300">
+                            <i class="fa-solid fa-virus-slash w-5 text-center"></i> PPI & PPRA
+                        </p>
+                        <div class="space-y-1 pl-3 ml-4 border-l border-slate-700/50 mt-1">
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---IPCAF/', 'IPCAF (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-clipboard-list w-5 text-center group-hover:scale-110 transition"></i> IPCAF
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Bundles-HAIs/', 'Bundles HAIs (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-boxes-stacked w-5 text-center group-hover:scale-110 transition"></i> Bundles HAIs
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---ICRA_PCRA/', 'ICRA PCRA (RS)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-building-shield w-5 text-center group-hover:scale-110 transition"></i> ICRA PCRA
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/PPRA-RS/', 'PPRA RS')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-capsules w-5 text-center group-hover:scale-110 transition"></i> PPRA RS
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -157,6 +205,28 @@
                     <button onclick="loadApp('https://alfan-23.github.io/Sehati-RCA-sederhana/index.html', 'RCA Sederhana (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-medical w-5 text-center group-hover:scale-110 transition"></i> RCA Sederhana
                     </button>
+
+                    <!-- Grup PPI -->
+                    <div class="pt-2">
+                        <p class="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-slate-300">
+                            <i class="fa-solid fa-virus-slash w-5 text-center"></i> PPI & PPRA
+                        </p>
+                        <div class="space-y-1 pl-3 ml-4 border-l border-slate-700/50 mt-1">
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---IPCAF/', 'IPCAF (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-clipboard-list w-5 text-center group-hover:scale-110 transition"></i> IPCAF
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---Bundles-HAIs/', 'Bundles HAIs (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-boxes-stacked w-5 text-center group-hover:scale-110 transition"></i> Bundles HAIs
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/Sehati---ICRA_PCRA/', 'ICRA PCRA (Klinik)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-building-shield w-5 text-center group-hover:scale-110 transition"></i> ICRA PCRA
+                            </button>
+                            <button onclick="loadApp('https://alfan-23.github.io/PPRA-FKTP/', 'PPRA (POR)')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
+                                <i class="fa-solid fa-pills w-5 text-center group-hover:scale-110 transition"></i> PPRA (POR)
+                            </button>
+                        </div>
+                    </div>
+
                     <button onclick="loadApp('https://alfan-23.github.io/Sehati---AKREDITASI-KLINIK/', 'Akreditasi Klinik')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-all group">
                         <i class="fa-solid fa-file-shield w-5 text-center group-hover:scale-110 transition"></i> Akreditasi Klinik
                     </button>
