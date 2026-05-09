@@ -14,13 +14,10 @@
                 throw new Error("Unauthorized Access");
             }
             if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
-                // Untuk preview di Canvas, kita abaikan redirect agar UI tetap terlihat jika belum login
-                // window.location.href = 'index.html'; 
+                window.location.href = 'index.html'; 
             }
             
-            // Set dummy session storage untuk keperluan Preview di Canvas
-            sessionStorage.setItem('kategori', 'Dinkes'); // Memaksa role Dinkes untuk preview
-            sessionStorage.setItem('unitKerja', 'Dinas Kesehatan');
+            // KODE DUMMY LOGIN SUDAH DIHAPUS AGAR MENGIKUTI DATA DARI INDEX.HTML
         })();
     </script>
 
@@ -394,6 +391,7 @@
         const totalKeys = 4;
 
         window.addEventListener('DOMContentLoaded', () => {
+            // Membaca kategori ASLI dari sessionStorage yang diset oleh index.html
             const kategoriFasyankes = sessionStorage.getItem('kategori') || 'Puskesmas'; 
             const unitKerja = sessionStorage.getItem('unitKerja') || kategoriFasyankes;
             
@@ -423,7 +421,6 @@
                 } catch (e) {}
             }
 
-            // Tarik Referensi Otomatis dari GitHub saat Dasbor Dibuka
             tarikReferensiGlobal();
         });
 
