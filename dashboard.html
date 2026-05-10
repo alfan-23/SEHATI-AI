@@ -79,7 +79,6 @@
                 <label class="block text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fa-solid fa-database mr-1"></i> Database Aturan</label>
                 <div class="bg-slate-900/80 p-2 rounded border border-slate-700 text-[9px] flex items-center gap-2 text-slate-400">
                     <i id="dbIcon" class="fa-solid fa-spinner spin-anim text-skyblue"></i>
-                    <span id="dbText">Menarik Sinkronisasi GitHub...</span>
                 </div>
                 <p class="text-[8px] text-slate-500 mt-1.5 italic">*Referensi terhubung ke aplikasi secara otomatis.</p>
             </div>
@@ -424,32 +423,31 @@
             tarikReferensiGlobal();
         });
 
+        // FUNGSI TARIK REFERENSI DIUBAH KE FOLDER LOKAL SEPERTI INSTRUKSI
         async function tarikReferensiGlobal() {
             const dbIcon = document.getElementById('dbIcon');
-            const dbText = document.getElementById('dbText');
+            
             try {
-                const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`);
-                if (!res.ok) throw new Error();
-                const files = await res.json();
-                let loadedCount = 0; globalSystemReference = ""; 
-                if(files.length > 0) {
-                    for(let file of files) {
-                        if(file.type === 'file' && file.download_url) {
-                            const textRes = await fetch(file.download_url);
-                            if(textRes.ok) {
-                                globalSystemReference += `\n\n[ATURAN DINKES - ${file.name}]\n${await textRes.text()}`;
-                                loadedCount++;
-                            }
-                        }
+                const res = await fetch('./referensi/daftar_isi.json');
+                if (!res.ok) throw new Error("Gagal membaca daftar_isi.json");
+                const fileList = await res.json();
+                
+                let loadedCount = 0; 
+                globalSystemReference = ""; 
+                
+                for(let fileName of fileList) {
+                    const textRes = await fetch(`./referensi/${encodeURIComponent(fileName)}`);
+                    if(textRes.ok) {
+                        globalSystemReference += `\n\n[REFERENSI - ${fileName}]\n${await textRes.text()}`;
+                        loadedCount++;
                     }
                 }
-                dbIcon.className = "fa-solid fa-check-circle text-emerald-400";
-                dbText.innerText = `${loadedCount} Referensi sinkron`;
-                dbText.className = "text-emerald-400 font-bold";
+                
+                if(dbIcon) dbIcon.className = "fa-solid fa-check-circle text-emerald-400";
                 sendConfigToApp();
+                
             } catch (e) {
-                dbIcon.className = "fa-solid fa-triangle-exclamation text-amber-500";
-                dbText.innerText = "Database aturan kosong/offline";
+                if(dbIcon) dbIcon.className = "fa-solid fa-triangle-exclamation text-amber-500";
             }
         }
 
