@@ -414,13 +414,24 @@
         let globalSystemReference = "";
         let namaAplikasiAktif = "";
 
-        const aiModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
-        let currentKeyIndex = 0; let currentModelIndex = 0;
-        let keysAttemptedForCurrentModel = 0; let consecutiveErrors = 0;
+        const aiModels = [
+            'gemini-3.1-pro-preview',     
+            'gemini-3-flash-preview',   
+            'gemini-2.5-pro',             
+            'gemini-2.5-flash'            
+        ];
+        
+        let currentKeyIndex = 0; 
+        let currentModelIndex = 0;
+        let keysAttemptedForCurrentModel = 0; 
+        let consecutiveErrors = 0;
         const totalKeys = 4;
+        
+        // --- VARIABEL KONTROL LIMIT RPM ---
+        let isRotating = false; 
+        const baseDelay = 3000;
 
         window.addEventListener('DOMContentLoaded', () => {
-            // Membaca kategori ASLI dari sessionStorage yang diset oleh index.html
             const kategoriFasyankes = sessionStorage.getItem('kategori') || 'Puskesmas'; 
             const unitKerja = sessionStorage.getItem('unitKerja') || kategoriFasyankes;
             
@@ -453,7 +464,6 @@
             tarikReferensiGlobal();
         });
 
-        // FUNGSI TARIK REFERENSI DIUBAH KE FOLDER LOKAL SEPERTI INSTRUKSI
         async function tarikReferensiGlobal() {
             const dbIcon = document.getElementById('dbIcon');
             
@@ -547,11 +557,13 @@
         function rotateConfig() {
             const activeKeys = getActiveKeysCount();
             if(activeKeys === 0) return;
+
             keysAttemptedForCurrentModel++;
+            
             if (keysAttemptedForCurrentModel >= activeKeys) {
                 currentModelIndex = (currentModelIndex + 1) % aiModels.length;
-                keysAttemptedForCurrentModel = 0; 
-                currentKeyIndex = Array.from({length: totalKeys}).findIndex((_, i) => document.getElementById(`api_key_${i}`).value.trim());
+                keysAttemptedForCurrentModel = 0;
+                currentKeyIndex = Array.from({length: totalKeys}).findIndex((_, i) => document.getElementById(`api_key_${i}`).value.trim() !== "");
             } else {
                 let attempts = 0;
                 while(attempts < totalKeys) {
@@ -560,6 +572,7 @@
                     attempts++;
                 }
             }
+            
             updateStatusUI(`SLOT ${currentKeyIndex + 1} | V${aiModels[currentModelIndex].split('-')[1].toUpperCase()}`, "bg-amber-500/20 text-amber-600 border-amber-300");
             sendConfigToApp();
         }
@@ -586,18 +599,45 @@
 
         window.addEventListener('message', async (event) => {
             if (!event.data || !event.data.type) return;
-            if (event.data.type === 'REQUEST_CONFIG') sendConfigToApp();
-            if (event.data.type === 'API_SUCCESS') { consecutiveErrors = 0; keysAttemptedForCurrentModel = 0; catatKeGoogleSheets("Dokumen Berhasil Dibuat"); }
+            
+            if (event.data.type === 'REQUEST_CONFIG') {
+                sendConfigToApp();
+            }
+            
+            if (event.data.type === 'API_SUCCESS') { 
+                consecutiveErrors = 0; 
+                keysAttemptedForCurrentModel = 0; 
+                catatKeGoogleSheets("Dokumen Berhasil Dibuat"); 
+            }
+            
             if (event.data.type === 'API_ERROR') {
-                const activeKeys = getActiveKeysCount(); if (activeKeys === 0) return;
-                consecutiveErrors++; catatKeGoogleSheets(`Gagal (Error ${event.data.code})`);
+                const activeKeys = getActiveKeysCount(); 
+                if (activeKeys === 0) return;
+
+                if (isRotating) return; 
+
+                consecutiveErrors++; 
+                catatKeGoogleSheets(`Gagal (Error ${event.data.code})`);
+                
                 if (consecutiveErrors >= activeKeys * aiModels.length) {
-                    updateStatusUI(`ERROR TOTAL`, "bg-red-500/20 text-red-600 border-red-300");
+                    updateStatusUI(`ERROR TOTAL: LIMIT API HABIS`, "bg-red-500/20 text-red-600 border-red-300");
                     const frame = document.getElementById('appFrame');
-                    if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: 'STOP_RETRY' }, '*');
+                    if (frame && frame.contentWindow) {
+                        frame.contentWindow.postMessage({ type: 'STOP_RETRY' }, '*');
+                    }
                     return;
                 }
-                setTimeout(rotateConfig, 2000);
+
+                isRotating = true;
+                
+                updateStatusUI(`LIMIT RPM! MENGALIHKAN...`, "bg-purple-500/20 text-purple-600 border-purple-300");
+
+                const currentDelay = baseDelay + (consecutiveErrors * 1000);
+                
+                setTimeout(() => {
+                    rotateConfig();
+                    isRotating = false; 
+                }, currentDelay);
             }
         });
 
