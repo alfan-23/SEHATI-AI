@@ -6,10 +6,16 @@
     <title>SEHATI - AI | Login Fasyankes</title>
     
     <script>
+        // Sistem Keamanan Lisensi Domain
         (function() {
             const allowedDomain = "alfan-23.github.io";
             const currentDomain = window.location.hostname;
-            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1") {
+            
+            // Bypass untuk localhost dan lingkungan pratinjau
+            const isLocal = currentDomain === "localhost" || currentDomain === "127.0.0.1" || currentDomain === "";
+            const isCanvasPreview = window.self !== window.top || currentDomain.includes("google") || currentDomain.includes("sandbox");
+            
+            if (currentDomain !== allowedDomain && !isLocal && !isCanvasPreview) {
                 document.documentElement.innerHTML = `
                     <div style="display:flex; justify-content:center; align-items:center; height:100vh; background-color:#0f172a; color:#38bdf8; font-family:sans-serif; text-align:center; padding:20px;">
                         <div>
@@ -83,6 +89,7 @@
         .animation-delay-4000 { animation-delay: 4s; }
     </style>
 </head>
+
 <body class="min-h-screen flex items-center justify-center p-4 md:p-6 relative">
 
     <div class="fixed inset-0 w-full h-full overflow-hidden -z-10 pointer-events-none flex justify-center items-center">
@@ -93,6 +100,7 @@
 
     <div class="w-full max-w-[1000px] flex flex-col md:flex-row items-stretch gap-8 md:gap-4 opacity-0 animate-fade-in-up">
         
+        <!-- Bagian Kiri: Teks Branding -->
         <div class="md:w-1/2 p-4 md:p-12 flex flex-col justify-center text-center md:text-left z-10">
             <div class="inline-flex items-center gap-4 mb-6 justify-center md:justify-start">
                 <div class="w-14 h-14 bg-gradient-to-br from-skyblue to-vibrant rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(56,189,248,0.4)]">
@@ -126,6 +134,7 @@
             </div>
         </div>
 
+        <!-- Bagian Kanan: Form Login -->
         <div class="md:w-1/2 z-10">
             <div class="glass-card rounded-[2rem] p-8 md:p-10 relative overflow-hidden">
                 <div class="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-skyblue/20 to-transparent rounded-full blur-xl"></div>
@@ -136,6 +145,13 @@
                 </div>
                 
                 <form onsubmit="handleLogin(event)" class="space-y-5">
+                    
+                    <!-- Kotak Notifikasi Alert -->
+                    <div id="alertMessage" class="hidden w-full bg-red-500/20 border border-red-500/50 text-red-200 text-xs p-4 rounded-xl flex items-center gap-3 transition-all">
+                        <i class="fa-solid fa-circle-exclamation text-red-400"></i>
+                        <span id="alertText"></span>
+                    </div>
+
                     <div class="space-y-2 group">
                         <label class="block text-[10px] font-black text-skyblue uppercase tracking-[0.2em] ml-1 opacity-80 group-focus-within:opacity-100 transition-opacity">Kategori Layanan</label>
                         <div class="relative">
@@ -185,6 +201,7 @@
         </div>
     </div>
 
+    <!-- Loader Overlay -->
     <div id="loader" class="hidden fixed inset-0 z-50 bg-navy/95 backdrop-blur-xl flex flex-col justify-center items-center">
         <div class="relative">
             <div class="w-16 h-16 border-4 border-slate-700 border-t-skyblue rounded-full animate-spin"></div>
@@ -196,8 +213,10 @@
     </div>
 
     <script>
+        // URL API dari Google Apps Script Anda
         const GAS_URL = "https://script.google.com/macros/s/AKfycbyqV3Q8K4RJbTS_CK8U1XTzLjC-cIZc95oaRRO5hAZElGEm-DG5YAvbhf0RhgdLo3je/exec";
 
+        // Fungsi Tampilkan/Sembunyikan Password
         function togglePassword(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
@@ -212,9 +231,26 @@
             }
         }
 
+        // Fungsi Menampilkan Notifikasi Kesalahan
+        function showAlert(message) {
+            const alertBox = document.getElementById('alertMessage');
+            const alertText = document.getElementById('alertText');
+            alertText.innerText = message;
+            alertBox.classList.remove('hidden');
+            
+            // Sembunyikan otomatis setelah 5 detik
+            setTimeout(() => {
+                alertBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Fungsi Utama Menangani Login
         async function handleLogin(e) {
             e.preventDefault();
+            
+            // Tampilkan loading screen dan sembunyikan pesan error yang lama
             document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('alertMessage').classList.add('hidden');
             
             const payload = {
                 action: 'login',
@@ -224,19 +260,36 @@
             };
 
             try {
-                const response = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+                // Mengirim request POST ke Google Apps Script
+                const response = await fetch(GAS_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify(payload) 
+                });
+                
                 const result = await response.json();
+                
                 if (result.status === 'success') {
+                    // PERBAIKAN: Menyimpan data sesi LENGKAP dengan pembersihan spasi (trim)
+                    const cleanEmail = payload.email.trim();
+                    
                     sessionStorage.setItem('isLoggedIn', 'true');
                     sessionStorage.setItem('unitKerja', result.unitKerja);
                     sessionStorage.setItem('kategori', payload.fasyankes);
+                    
+                    // Simpan email agar dikenali oleh Dashboard untuk otorisasi Panel Persetujuan
+                    sessionStorage.setItem('userEmail', cleanEmail);
+                    localStorage.setItem('userEmail', cleanEmail); 
+                    
+                    // Arahkan ke halaman Dashboard
                     window.location.href = 'dashboard.html';
                 } else {
-                    alert("Akses Ditolak: " + result.message);
+                    showAlert("Akses Ditolak: " + result.message);
                 }
             } catch (err) {
-                alert("Kesalahan koneksi ke Database Pusat.");
+                showAlert("Kesalahan koneksi ke Database Pusat. Silakan coba lagi.");
+                console.error(err);
             } finally {
+                // Sembunyikan loading screen
                 document.getElementById('loader').classList.add('hidden');
             }
         }
