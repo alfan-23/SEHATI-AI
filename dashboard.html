@@ -6,12 +6,10 @@
     <title>Dashboard SEHATI | Link Canvas</title>
     
     <script>
-        // Sesi cadangan default untuk keperluan pratinjau lancar
+        // Pengecekan sesi asli: Jika user belum login, lemparkan kembali ke halaman login.
         if (!localStorage.getItem('isLoggedIn') && !sessionStorage.getItem('isLoggedIn')) {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            sessionStorage.setItem('kategori', 'Dinkes'); // Set default Dinkes agar menu admin bisa langsung diuji coba
-            sessionStorage.setItem('unitKerja', 'Dinas Kesehatan');
-            sessionStorage.setItem('userEmail', 'yanmutu.kng@gmail.com'); // Default Editor Terverifikasi
+            // Uncomment kode di bawah ini jika sudah di-upload ke Github Pages
+            // window.location.href = 'index.html';
         }
 
         (function() {
@@ -471,7 +469,10 @@
         window.addEventListener('DOMContentLoaded', () => {
             const kategori = sessionStorage.getItem('kategori') || 'Dinkes';
             const unitKerja = sessionStorage.getItem('unitKerja') || 'Dinas Kesehatan';
-            const userEmail = sessionStorage.getItem('userEmail') || 'guest@sehati.id';
+            
+            // PERBAIKAN: Menghapus spasi yang tidak sengaja terbawa saat login agar email selalu valid
+            const rawEmail = sessionStorage.getItem('userEmail') || localStorage.getItem('userEmail') || sessionStorage.getItem('email') || localStorage.getItem('email') || 'guest@sehati.id';
+            const userEmail = rawEmail.trim();
 
             // 1. Validasi Keanggotaan Editor Resmi
             isVerifiedEditor = allowedEditors.includes(userEmail.toLowerCase());
@@ -495,8 +496,17 @@
             setMenuVisibility(kategori);
             setupAuthBanner(userEmail);
 
-            // 4. Sinkronisasi Data Spreadsheet di Latar Belakang
+            // 4. Sinkronisasi Data Spreadsheet Awal
             fetchSpreadsheetData();
+
+            // 5. FITUR REAL-TIME AUTO-POLLING (Mengecek perubahan Google Sheet otomatis)
+            setInterval(() => {
+                const approvalPanel = document.getElementById('viewApproval');
+                // Cek sheet secara diam-diam JIKA panel persetujuan sedang terbuka
+                if (approvalPanel && !approvalPanel.classList.contains('hidden')) {
+                    fetchSpreadsheetData(true); // Parameter true berarti ini auto-refresh senyap
+                }
+            }, 5000);
         });
 
         function toggleSidebar() { 
@@ -566,35 +576,46 @@
             document.getElementById('viewWelcome').classList.add('hidden');
             document.getElementById('viewApproval').classList.remove('hidden');
             showToast("Memuat Data", "Menyelaraskan data real-time...", "skyblue");
-            filterDatabase();
+            fetchSpreadsheetData();
         }
 
         // SISTEM SINKRONISASI TIGA LAPIS (TRIPLE-FALLBACK) UNTUK KEBAL CORS SANDBOX
-        async function fetchSpreadsheetData() {
+        async function fetchSpreadsheetData(isAuto = false) {
             const icon = document.getElementById('refreshIcon');
-            if (icon) icon.classList.add('fa-spin');
+            // Jangan putar ikon muter-muter kalau ini tarikan auto di background
+            if (icon && !isAuto) icon.classList.add('fa-spin');
 
             let success = false;
 
-            // LAPIS 1: Ambil data via GAS Web App (Direkomendasikan & Mendukung Sheets Terkunci/Restricted)
-            if (GAS_URL && !GAS_URL.includes("AKfycbyqV3Q8K4RJbTS_CK8U1XTzLjC-cIZc95oaRRO5hAZElGEm-DG5YAvbhf0RhgdLo3je")) {
+            // LAPIS 1: Ambil data via GAS Web App 
+            // PERBAIKAN: Menghapus pemblokir bawaan template agar URL GAS Anda bisa langsung jalan!
+            if (GAS_URL) {
                 try {
                     const response = await fetch(`${GAS_URL}?action=getRegistrations`);
                     if (response.ok) {
                         const result = await response.json();
                         if (result.status === 'success' && Array.isArray(result.data)) {
-                            databaseStore = result.data.map(item => ({
+                            const newData = result.data.map(item => ({
                                 kategori: item.fasyankes,
                                 nama: item.unitKerja,
                                 email: item.email,
                                 status: item.status
                             }));
+                            
+                            // Hanya update jika data berbeda agar tabel tidak berkedip (Smart Render)
+                            if (JSON.stringify(databaseStore) !== JSON.stringify(newData)) {
+                                databaseStore = newData;
+                                filterDatabase();
+                            } else if (!isAuto) {
+                                filterDatabase();
+                            }
+
                             success = true;
-                            showToast("Sinkronisasi Sukses", "Data sinkron dengan aman via Apps Script Cloud.", "emerald");
+                            if (!isAuto) showToast("Sinkronisasi Sukses", "Terhubung dengan Google Sheet secara Real-Time.", "emerald");
                         }
                     }
                 } catch (err) {
-                    console.warn("GAS Fetch gagal/terblokir sandbox, beralih ke Lapis 2...");
+                    if (!isAuto) console.warn("GAS Fetch gagal/terblokir sandbox, beralih ke Lapis 2...");
                 }
             }
 
@@ -608,12 +629,12 @@
                     const jsonText = text.substring(text.indexOf("(") + 1, text.lastIndexOf(")"));
                     const dataObj = JSON.parse(jsonText);
                     const rows = dataObj.table.rows;
-                    databaseStore = [];
-
+                    
+                    let newData = [];
                     rows.forEach(row => {
                         const cells = row.c;
                         if (cells && cells[0] && cells[1] && cells[2]) {
-                            databaseStore.push({
+                            newData.push({
                                 kategori: cells[0]?.v || '',
                                 nama: cells[1]?.v || '',
                                 email: cells[2]?.v || '',
@@ -621,29 +642,32 @@
                             });
                         }
                     });
+
+                    // Update UI jika datanya beda
+                    if (JSON.stringify(databaseStore) !== JSON.stringify(newData)) {
+                        databaseStore = newData;
+                        filterDatabase();
+                    } else if (!isAuto) {
+                        filterDatabase();
+                    }
+
                     success = true;
-                    showToast("Sinkronisasi Terbuka", "Data ditarik langsung dari tautan Google Sheets.", "emerald");
+                    if (!isAuto) showToast("Sinkronisasi Terbuka", "Data ditarik langsung dari tautan Google Sheets.", "emerald");
                 } catch (err) {
-                    console.warn("Direct Gviz fetch gagal (Sebab: Google Sheets diset PRIVATE atau diblokir oleh CORS Sandbox Browser).");
+                    if(!isAuto) console.warn("Gviz fetch gagal.");
                 }
             }
 
-            // LAPIS 3: Fallback ke Database Simulasi Lokal (Menjamin aplikasi 100% jalan mulus di sandbox pratinjau)
-            if (!success) {
+            // LAPIS 3: Fallback Jika Gagal Terkoneksi (Tanpa Data Dummy)
+            if (!success && !isAuto) {
                 if (databaseStore.length === 0) {
-                    databaseStore = [
-                        { kategori: "Puskesmas", nama: "Puskesmas Kuningan Sehat", email: "puskesmas.kuningan@gmail.com", status: "Approved" },
-                        { kategori: "Klinik", nama: "Klinik Adeeva Athfa", email: "allaiqa.athfa@gmail.com", status: "Approved" },
-                        { kategori: "Rumah Sakit", nama: "RSUD Kuningan", email: "rsud.kuningan@gmail.com", status: "Pending" },
-                        { kategori: "Puskesmas", nama: "Puskesmas Luragung Sehati", email: "luragung.sehati@gmail.com", status: "Pending" }
-                    ];
+                    databaseStore = []; // Pastikan database benar-benar kosong
+                    filterDatabase();
                 }
-                // Tampilkan Toast informatif alih-alih membiarkan crash
-                showToast("Mode Simulasi Aktif", "Akses jaringan cloud terblokir di lingkungan pratinjau browser ini. Menggunakan database simulasi lokal.", "amber");
+                showToast("Koneksi Gagal", "Tidak dapat mengambil data dari server Google Sheets.", "red");
             }
 
-            filterDatabase();
-            if (icon) {
+            if (icon && !isAuto) {
                 setTimeout(() => icon.classList.remove('fa-spin'), 600);
             }
         }
@@ -701,6 +725,13 @@
                     tableBody.appendChild(row);
                 }
             });
+
+            // Tampilkan pesan kosong jika tidak ada data dari Google Sheets
+            if (count === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = `<td colspan="4" class="py-8 text-center text-slate-400 font-medium italic"><i class="fa-solid fa-folder-open mb-2 text-2xl block text-slate-300"></i>Tidak ada data fasyankes ditemukan</td>`;
+                tableBody.appendChild(emptyRow);
+            }
 
             document.getElementById('dataCount').innerText = `${count} Fasyankes`;
         }
