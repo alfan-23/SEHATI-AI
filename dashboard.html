@@ -6,22 +6,18 @@
     <title>Dashboard SEHATI | Link Canvas</title>
     
     <script>
-        // [MODIFIKASI CANVAS: Bypass login & lisensi untuk keperluan pratinjau]
-        sessionStorage.setItem('isLoggedIn', 'true');
-        sessionStorage.setItem('kategori', 'Dinkes'); // Set ke Dinkes agar semua menu tampil untuk simulasi
-        sessionStorage.setItem('unitKerja', 'Dinas Kesehatan');
-
+        // Pengecekan Keamanan & Autentikasi (Sesuai dengan logika login index.html)
         (function() {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
             const allowedDomain = "alfan-23.github.io";
             const currentDomain = window.location.hostname;
             
-            // Pengecekan dinonaktifkan agar tidak memblokir di dalam iframe pratinjau Canvas
+            const isLocal = currentDomain === "localhost" || currentDomain === "127.0.0.1" || currentDomain === "";
+            const isCanvasPreview = window.self !== window.top || currentDomain.includes("google") || currentDomain.includes("sandbox");
+            
+            // Redirect ke halaman login jika tidak ada sesi aktif (Bisa di-uncomment untuk versi Production)
             /*
-            if (currentDomain !== allowedDomain && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
-                document.documentElement.innerHTML = `<div style="text-align:center; margin-top:20%;"><h1>LISENSI TIDAK VALID</h1></div>`;
-                throw new Error("Unauthorized Access");
-            }
-            if (!sessionStorage.getItem('isLoggedIn') && currentDomain !== "localhost" && currentDomain !== "127.0.0.1" && currentDomain !== "") {
+            if (!isLoggedIn && !isLocal && !isCanvasPreview) {
                 window.location.href = 'index.html'; 
             }
             */
@@ -57,7 +53,7 @@
                 <div class="w-8 h-8 bg-skyblue rounded-lg flex items-center justify-center font-bold text-navy"><i class="fa-solid fa-leaf"></i></div>
                 <div>
                     <h2 class="font-bold text-lg text-skyblue leading-tight">SEHATI Canvas</h2>
-                    <span id="roleIndicator" class="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold uppercase border border-slate-600">User</span>
+                    <span id="roleIndicator" class="text-[9px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold uppercase border border-slate-600">Loading...</span>
                 </div>
             </div>
             <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
@@ -66,13 +62,12 @@
         <nav class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
             
             <!-- MENU PUSKESMAS -->
-            <div id="menuPuskesmas">
+            <div id="menuPuskesmas" class="hidden">
                 <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2 border-b border-slate-700 pb-2">
                     <i class="fa-solid fa-hospital-user text-sm"></i> PUSKESMAS
                 </p>
                 <div class="space-y-4 pl-1">
                     
-                    <!-- Pengukuran & Penilaian -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-chart-pie w-5 text-center"></i> Indikator Mutu</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -91,7 +86,6 @@
                         </div>
                     </div>
 
-                    <!-- Keselamatan -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-shield-heart w-5 text-center"></i> Keselamatan</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -104,7 +98,6 @@
                         </div>
                     </div>
 
-                    <!-- Manrisk -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-network-wired w-5 text-center"></i> Manajemen Risiko</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -126,7 +119,6 @@
                         </div>
                     </div>
 
-                    <!-- Pendukung -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-folder-open w-5 text-center"></i> Dokumen Pendukung</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -143,13 +135,12 @@
             </div>
 
             <!-- MENU KLINIK -->
-            <div id="menuKlinik">
+            <div id="menuKlinik" class="hidden">
                 <p class="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2 border-b border-slate-700 pb-2">
                     <i class="fa-solid fa-stethoscope text-sm"></i> KLINIK
                 </p>
                 <div class="space-y-4 pl-1">
                     
-                    <!-- Pengukuran & Penilaian -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-chart-pie w-5 text-center"></i> Indikator Mutu</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -165,7 +156,6 @@
                         </div>
                     </div>
 
-                    <!-- Keselamatan -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-shield-heart w-5 text-center"></i> Keselamatan</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -178,7 +168,6 @@
                         </div>
                     </div>
 
-                    <!-- Manrisk -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-network-wired w-5 text-center"></i> Manajemen Risiko</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -200,7 +189,6 @@
                         </div>
                     </div>
 
-                    <!-- Pendukung -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-folder-open w-5 text-center"></i> Dokumen Pendukung</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -217,13 +205,12 @@
             </div>
 
             <!-- MENU RUMAH SAKIT -->
-            <div id="menuRS">
+            <div id="menuRS" class="hidden">
                 <p class="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-3 px-2 flex items-center gap-2 border-b border-slate-700 pb-2">
                     <i class="fa-solid fa-hospital text-sm"></i> RUMAH SAKIT
                 </p>
                 <div class="space-y-4 pl-1">
                     
-                    <!-- Pengukuran & Penilaian -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-chart-pie w-5 text-center"></i> Indikator Mutu</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -242,7 +229,6 @@
                         </div>
                     </div>
 
-                    <!-- Keselamatan -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-shield-heart w-5 text-center"></i> Keselamatan</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -255,7 +241,6 @@
                         </div>
                     </div>
 
-                    <!-- Manrisk -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-network-wired w-5 text-center"></i> Manajemen Risiko</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -277,7 +262,6 @@
                         </div>
                     </div>
 
-                    <!-- Pendukung -->
                     <div>
                         <p class="text-xs font-semibold text-slate-400 mb-2"><i class="fa-solid fa-folder-open w-5 text-center"></i> Dokumen Pendukung</p>
                         <div class="space-y-1 pl-3 ml-2 border-l border-slate-700">
@@ -318,7 +302,7 @@
             </div>
         </header>
 
-        <!-- AREA UTAMA STATIC -->
+        <!-- AREA UTAMA STATIC (SIMULATOR DIHAPUS, MURNI DARI LOGIN SAJA) -->
         <div class="flex-1 relative overflow-hidden bg-slate-50 flex items-center justify-center p-6">
             <div class="max-w-md w-full bg-white rounded-3xl shadow-xl border border-slate-100 p-8 text-center transform transition-all hover:scale-[1.02]">
                 
@@ -328,7 +312,7 @@
                 
                 <h2 class="text-2xl font-extrabold text-navy tracking-tight mb-3">Selamat Datang di SEHATI</h2>
                 <p class="text-slate-500 text-sm mb-6 leading-relaxed">
-                    Pilih menu di sidebar sebelah kiri untuk membuka aplikasi Canvas Gemini sesuai dengan kategori dan dokumen yang Anda butuhkan.
+                    Menu di sidebar sebelah kiri <b class="text-navy">telah difilter otomatis</b> berdasarkan akses akun Anda. Klik tautan dokumen yang Anda butuhkan.
                 </p>
                 
                 <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-left">
@@ -347,11 +331,21 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
-            // Ambil data sesi dari login (index.html)
-            const kategoriFasyankes = sessionStorage.getItem('kategori') || 'Dinkes'; 
-            const unitKerja = sessionStorage.getItem('unitKerja') || 'Dinas Kesehatan';
-            
-            // Setel indikator peran
+            // 1. Ambil data sesi NYATA dari hasil login (index.html)
+            const kategoriFasyankes = sessionStorage.getItem('kategori'); 
+            const unitKerja = sessionStorage.getItem('unitKerja');
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+
+            // 2. Jika tidak ada sesi login, tampilkan peringatan
+            if (!isLoggedIn || !kategoriFasyankes) {
+                // Di sistem sesungguhnya, ini akan redirect. Di sini kita beri visual error jika dibuka langsung tanpa login.
+                document.getElementById('roleIndicator').innerText = "BELUM LOGIN";
+                document.getElementById('roleIndicator').className = "text-[9px] bg-red-500/20 text-red-500 px-2 py-0.5 rounded-full font-bold uppercase border border-red-500/30";
+                alert("Peringatan: Anda belum melakukan login melalui index.html. Menu tidak akan ditampilkan.");
+                return; // Stop eksekusi agar menu tidak tampil
+            }
+
+            // 3. Setel indikator peran sesuai login
             const roleIndicator = document.getElementById('roleIndicator');
             roleIndicator.innerText = unitKerja;
             
@@ -365,7 +359,7 @@
                 roleIndicator.className = "text-[9px] bg-sky-500/20 text-sky-400 px-2 py-0.5 rounded-full font-bold uppercase border border-sky-500/30";
             }
 
-            // Tampilkan menu yang sesuai
+            // 4. Lakukan pemfilteran menu ketat
             setMenuVisibility(kategoriFasyankes);
         });
 
@@ -373,34 +367,34 @@
             document.getElementById('sidebar').classList.toggle('toggled'); 
         }
 
-        function setMenuVisibility(kategoriFasyankes) {
+        function setMenuVisibility(kategori) {
             const menuPuskesmas = document.getElementById('menuPuskesmas');
             const menuRS = document.getElementById('menuRS');
             const menuKlinik = document.getElementById('menuKlinik');
 
-            // Sembunyikan semua dulu
+            // Sembunyikan semua secara default
             menuPuskesmas.classList.add('hidden');
             menuRS.classList.add('hidden');
             menuKlinik.classList.add('hidden');
 
-            // Tampilkan sesuai hak akses
-            if (kategoriFasyankes === 'Dinkes') {
+            // Tampilkan hanya yang sesuai hak akses dari sesi
+            if (kategori === 'Dinkes') {
+                // Dinkes (Admin) bisa melihat semua menu
                 menuPuskesmas.classList.remove('hidden');
                 menuRS.classList.remove('hidden');
                 menuKlinik.classList.remove('hidden');
-            } else if (kategoriFasyankes === 'Puskesmas') {
+            } else if (kategori === 'Puskesmas') {
                 menuPuskesmas.classList.remove('hidden');
-            } else if (kategoriFasyankes === 'Rumah Sakit') {
+            } else if (kategori === 'Rumah Sakit') {
                 menuRS.classList.remove('hidden');
-            } else if (kategoriFasyankes === 'Klinik') {
+            } else if (kategori === 'Klinik') {
                 menuKlinik.classList.remove('hidden');
             }
         }
 
         function logout() { 
             sessionStorage.clear(); 
-            // window.location.href = 'index.html'; // dinonaktifkan di pratinjau agar tidak error navigasi
-            alert('Logout berhasil. Di website asli, ini akan mengarahkan Anda ke index.html.');
+            window.location.href = 'index.html'; 
         }
     </script>
 </body>
