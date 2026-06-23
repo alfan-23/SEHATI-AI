@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penjelajah Standar | Integrasi Google Drive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        navy: '#0f172a',
+                        primary: '#0ea5e9',
+                        drive: '#1fa463'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease;
+        }
+        .accordion-content.open {
+            max-height: 5000px;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ul.list-circle { list-style-type: circle; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased font-sans flex flex-col h-screen overflow-hidden">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row items-center justify-between z-30 shadow-sm flex-shrink-0 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl shadow-inner border border-blue-100">
+                <i class="fa-brands fa-google-drive"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-navy text-lg leading-tight">Penjelajah Dokumen Akreditasi</h1>
+                <p id="headerSubtitle" class="text-xs text-slate-500">Terintegrasi dengan Google Drive Folder Otomatis</p>
+            </div>
+        </div>
+        
+        <button onclick="openSetupModal()" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition shadow-md">
+            <i class="fa-solid fa-gear"></i> Setup Google Drive
+        </button>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="max-w-5xl mx-auto">
+            
+            <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 flex items-start gap-3 shadow-sm">
+                <i class="fa-solid fa-circle-info text-blue-600 mt-0.5"></i>
+                <div class="text-sm">
+                    <p class="font-semibold mb-1">Informasi Penggunaan</p>
+                    <p>Pilih elemen penilaian di bawah ini. Jika Anda mengunggah file, sistem akan otomatis memberi prefix <b class="font-mono text-xs">(R/D/O)</b> pada nama file dan membuat folder di Google Drive Anda dengan format hierarki:<br>
+                    <b class="text-blue-900 bg-blue-100 px-2 py-0.5 rounded font-mono text-xs mt-1 inline-block">Bukti_Akreditasi / [Nama Bab] / [Nama Standar] / [Kode EP]</b></p>
+                </div>
+            </div>
+
+            <div id="explorer-content" class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <!-- Konten Akordion -->
+            </div>
+
+        </div>
+    </main>
+
+    <input type="file" id="hiddenFileInput" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png,.jpeg">
+    
+    <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-y-24 opacity-0 z-50 flex items-center gap-3 font-medium text-sm max-w-sm">
+        <i id="toastIcon" class="fa-solid fa-check-circle text-lg"></i>
+        <span id="toastMessage">Pesan Notifikasi</span>
+    </div>
+
+    <!-- Modal Setup Google Drive -->
+    <div id="setupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="setupModalContent">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <h3 class="font-bold text-lg text-navy flex items-center gap-2">
+                    <i class="fa-brands fa-google-drive text-emerald-600"></i> Konfigurasi Google Drive
+                </h3>
+                <button onclick="closeSetupModal()" class="text-slate-400 hover:text-red-500 transition-colors w-8 h-8 flex justify-center items-center rounded-lg hover:bg-red-50">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto text-sm text-slate-600 space-y-5">
+                
+                <!-- Info Multi-Perangkat -->
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r text-amber-900 shadow-sm">
+                    <h4 class="font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-laptop-medical text-amber-600"></i> Buka di Komputer / HP Lain?</h4>
+                    <p class="text-xs">Jika Anda membuka aplikasi ini di perangkat lain, setelan ini <b>tidak terbawa otomatis</b>. Anda <b class="underline">TIDAK PERLU</b> membuat Script baru. Cukup tempel (paste) URL yang sudah Anda salin sebelumnya langsung ke kotak Hijau di bawah ini lalu Simpan.</p>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r text-blue-800 text-xs">
+                    <b>Catatan:</b> Jika ini pertama kalinya Anda menggunakan fitur ini di klinik, ikuti langkah 1 sampai 4 untuk membuat Folder Otomatis di Google Drive Anda.
+                </div>
+
+                <!-- Langkah 1 & 2 -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">1. Buat Proyek & Salin Kode</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Buka web <a href="https://script.google.com/" target="_blank" class="text-blue-600 hover:underline font-semibold">script.google.com</a> (pastikan sudah login akun Google Drive klinik Anda), lalu klik <b>Proyek Baru</b>.</li>
+                        <li>Hapus seluruh kode bawaan yang ada di layar putih tersebut.</li>
+                        <li>Klik <b>Copy Code</b> di bawah ini, lalu tempel (<i>paste</i>) ke layar tersebut.</li>
+                    </ul>
+                </div>
+                
+                <div class="relative group mb-4">
+                    <button onclick="copyScriptCode()" class="absolute top-2 right-2 bg-slate-700 text-white text-xs px-3 py-1.5 rounded-md hover:bg-slate-600 transition opacity-0 group-hover:opacity-100 focus:opacity-100 shadow-md">
+                        <i class="fa-regular fa-copy"></i> Copy Code
+                    </button>
+                    <pre id="gasScriptCode" class="bg-slate-800 text-green-400 p-4 rounded-xl overflow-x-auto text-xs font-mono border border-slate-700">
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var fileData = data.fileBase64;
+    var fileName = data.fileName;
+    var mimeType = data.mimeType;
+    var folderPath = data.folderPath;
+
+    var decodedFile = Utilities.base64Decode(fileData.split(',')[1]);
+    var blob = Utilities.newBlob(decodedFile, mimeType, fileName);
+
+    var rootFolder = DriveApp.getRootFolder();
+    var folders = folderPath.split('/');
+    var currentFolder = rootFolder;
+    
+    for (var i = 0; i < folders.length; i++) {
+      if(folders[i] === "") continue;
+      var folderIterator = currentFolder.getFoldersByName(folders[i]);
+      if (folderIterator.hasNext()) {
+        currentFolder = folderIterator.next();
+      } else {
+        currentFolder = currentFolder.createFolder(folders[i]);
+      }
+    }
+
+    var file = currentFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      url: file.getUrl(),
+      fileName: file.getName()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput("")
+    .setHeaders({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    });
+}
+</pre>
+                </div>
+
+                <!-- Langkah 3 -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">2. Terapkan (Deploy) Script</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Di sudut kanan atas, klik tombol biru <b>Terapkan (Deploy)</b> > pilih <b>Deployment baru</b>.</li>
+                        <li>Klik ikon Roda Gigi ⚙️ (Pilih jenis) > pilih <b>Aplikasi Web (Web App)</b>.</li>
+                        <li>Atur pengaturan berikut:
+                            <ul class="list-circle pl-5 mt-1 text-slate-500">
+                                <li>Jalankan sebagai: <b class="text-slate-700">Saya (Me)</b></li>
+                                <li>Siapa yang memiliki akses: <b class="text-slate-700">Siapa saja (Anyone)</b></li>
+                            </ul>
+                        </li>
+                        <li>Klik tombol <b>Terapkan</b>.</li>
+                    </ul>
+                </div>
+
+                <!-- Langkah 4 -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">3. Otorisasi Izin Akses (Sangat Penting!)</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Google akan meminta izin untuk membuat folder. Klik <b>Otorisasi akses</b> dan pilih akun Anda.</li>
+                        <li>Jika muncul layar peringatan <i>"Google belum memverifikasi aplikasi ini"</i>, klik tulisan <b>Lanjutan (Advanced)</b> di bagian bawah.</li>
+                        <li>Scroll ke bawah dan klik tulisan <b>Buka proyek (tidak aman) / Go to project</b>.</li>
+                        <li>Klik tombol <b>Izinkan (Allow)</b>.</li>
+                    </ul>
+                </div>
+
+                <!-- Langkah 5 -->
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">4. Simpan URL Web App</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Setelah berhasil, salin tulisan panjang di bawah <b>URL Aplikasi Web</b>.</li>
+                        <li>Tempelkan ke dalam kotak hijau di bawah ini dan klik Simpan. <b class="text-red-500">Simpan juga URL tersebut di catatan/Grup WA Klinik Anda</b> agar mudah disalin saat buka di komputer lain.</li>
+                    </ul>
+                </div>
+
+                <div class="mt-5 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Tempel Web App URL Anda di sini:</label>
+                    <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full px-3 py-2 border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
+                    <button onclick="saveGasUrl()" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg hover:bg-emerald-700 transition shadow-md">Simpan URL & Hubungkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IDENTIFIKASI USER LOGIN UNTUK MENGAMANKAN SESSION LOKAL URL GAS
+        const currentUnitKerja = sessionStorage.getItem('unitKerja') || 'Klinik_Default';
+        const STORAGE_KEY_GAS = `SEHATI_GAS_URL_${currentUnitKerja.replace(/\s+/g, '_')}`;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const subtitle = document.getElementById('headerSubtitle');
+            if(sessionStorage.getItem('unitKerja')) {
+                subtitle.innerHTML = `Terintegrasi dengan Google Drive Akun <b>${currentUnitKerja}</b>`;
+            }
+        });
+
+        // Data LENGKAP Standar Akreditasi Klinik (W dan S dihapus untuk fokus fasyankes/dokumen drive)
+        const accreditationData = {
+            "TKK": {
+                "title": "BAB I: TATA KELOLA KLINIK", "icon": "🏛️", "color": "sky", "standards": [
+                    { "id": "TKK 1", "title": "Standar 1.1 Pengorganisasian Klinik", "elements": [
+                        { "id": "1.1.1", "text": "Tersedia visi, misi, dan tujuan klinik yang ditetapkan pihak yang berwenang.", "rdows": [
+                            {"type":"R", "detail":"Surat Keputusan (SK) dari pemilik atau pejabat berwenang tentang penetapan Visi, Misi, dan Tujuan Klinik."},
+                            {"type":"D", "detail":"Dokumen Visi, Misi, dan Tujuan Klinik yang telah disahkan."},
+                            {"type":"O", "detail":"Mengamati sosialisasi visi, misi, dan tujuan kepada staf dan pasien (misalnya melalui pajangan di dinding, banner, atau media informasi lainnya)."}
+                        ]},
+                        { "id": "1.1.2", "text": "Tersedia struktur organisasi klinik yang ditetapkan oleh pemilik/pejabat berwenang.", "rdows": [
+                            {"type":"R", "detail":"SK Penetapan Struktur Organisasi oleh pemilik atau pejabat yang berwenang."},
+                            {"type":"D", "detail":"Dokumen bagan struktur organisasi yang jelas, disahkan, dan menunjukkan alur komando serta komunikasi."},
+                            {"type":"O", "detail":"Mengamati ketersediaan bagan struktur organisasi yang terpajang di area strategis."}
+                        ]},
+                        { "id": "1.1.3", "text": "Tersedia uraian tugas, tanggung jawab, wewenang yang ditetapkan.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan atau pedoman yang menetapkan uraian tugas, tanggung jawab, dan wewenang untuk setiap jabatan dalam struktur organisasi."},
+                            {"type":"D", "detail":"Dokumen uraian tugas, tanggung jawab, dan wewenang yang spesifik untuk masing-masing petugas, dan bukti bahwa staf telah menerima serta memahami dokumen tersebut."}
+                        ]}
+                    ] },
+                    { "id": "TKK 2", "title": "Standar 1.2 Tata Kelola Sumber Daya Manusia", "elements": [
+                        { "id": "1.2.1", "text": "Pemenuhan kebutuhan dan ketersediaan tenaga dilakukan sesuai dengan jumlah dan jenis kebutuhan layanan yang mengacu kepada ketentuan peraturan perundang-undangan.", "rdows": [
+                            {"type":"R", "detail":"Regulasi internal (kebijakan/pedoman) tentang perencanaan dan pemenuhan kebutuhan SDM, yang mengacu pada analisis beban kerja."},
+                            {"type":"D", "detail":"Dokumen hasil analisis beban kerja, dokumen peta jabatan (pola ketenagaan), dan bukti proses rekrutmen serta pemenuhan tenaga sesuai kebutuhan."}
+                        ]},
+                        { "id": "1.2.2", "text": "Tersedia file kepegawaian seluruh SDM yang diperbaharui secara berkala.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan atau SOP tentang pengelolaan dan pembaruan file kepegawaian."},
+                            {"type":"D", "detail":"Memeriksa kelengkapan file kepegawaian untuk setiap staf (meliputi: ijazah, STR, SIP, sertifikat pelatihan, uraian tugas, penilaian kinerja, dll)."},
+                            {"type":"O", "detail":"Mengamati kerapian, kelengkapan, dan kemudahan akses file kepegawaian yang disimpan secara fisik maupun elektronik."}
+                        ]},
+                        { "id": "1.2.3", "text": "Kinerja SDM dievaluasi secara berkala.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan dan SOP tentang mekanisme dan periode penilaian kinerja SDM."},
+                            {"type":"D", "detail":"Dokumen bukti pelaksanaan evaluasi kinerja secara berkala untuk seluruh SDM (form penilaian kinerja, rekapitulasi hasil, dan tindak lanjutnya)."}
+                        ]}
+                    ] },
+                    { "id": "TKK 3", "title": "Standar 1.3 Tata Kelola Fasilitas dan Keselamatan", "elements": [
+                        {"id": "1.3.1", "text":"Tersedia bukti perizinan sesuai ketentuan peraturan perundang-undangan yang berlaku.", "rdows": [
+                            {"type":"D", "detail":"Memeriksa kelengkapan dan masa berlaku dokumen perizinan klinik (contoh: Izin Mendirikan Bangunan/PBG, Izin Operasional Klinik, dll)."},
+                            {"type":"O", "detail":"Mengamati ketersediaan dokumen perizinan yang asli atau salinan terlegalisir di klinik."}
+                        ]},
+                        {"id": "1.3.2", "text":"Ada program manajemen risiko fasilitas sebagaimana diuraikan dalam maksud dan tujuan angka 1) sampai dengan angka 7).", "rdows": [
+                            {"type":"R", "detail":"Kebijakan dan pedoman Manajemen Fasilitas dan Keselamatan (MFK) atau Manajemen Risiko Fasilitas (MRF)."},
+                            {"type":"D", "detail":"Dokumen program MFK/MRF yang mencakup 7 area: Keselamatan & Keamanan, Pengelolaan B3 & Limbah B3, Penanggulangan Bencana, Sistem Proteksi Kebakaran, Peralatan Medis, Sistem Utilitas, dan Pengelolaan Sampah Domestik."}
+                        ]},
+                        {"id": "1.3.3", "text":"Tersedia daftar inventaris dan bukti pemeliharaan sarana yang tersedia di klinik.", "rdows": [
+                            {"type":"D", "detail":"Daftar inventaris seluruh sarana (bangunan, furnitur, kendaraan, dll) dan bukti pelaksanaan pemeliharaan terjadwal (jadwal pemeliharaan, ceklis pemeliharaan, laporan perbaikan)."},
+                            {"type":"O", "detail":"Mengamati kondisi fisik sarana di klinik dan mencocokkannya dengan daftar inventaris dan jadwal pemeliharaan."}
+                        ]},
+                        {"id": "1.3.4", "text":"Tersedia bukti pelaksanaan pengamanan dan pengawasan akses keluar masuk fasyankes.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang pengamanan dan pengawasan akses keluar masuk klinik."},
+                            {"type":"D", "detail":"Buku tamu atau catatan keluar masuk, laporan dari petugas keamanan (jika ada)."},
+                            {"type":"O", "detail":"Mengamati sistem pengamanan yang ada (misal: petugas keamanan, CCTV, pengaturan pintu masuk) dan pelaksanaannya."}
+                        ]},
+                        {"id": "1.3.5", "text":"Tersedia bukti pengelolaan bahan berbahaya dan beracun (B3) serta limbah B3 sesuai dengan ketentuan peraturan perundang-undangan.", "rdows": [
+                            {"type":"R", "detail":"SOP pengelolaan B3 dan limbah B3, mulai dari identifikasi, penyimpanan, penggunaan APD, hingga penyerahan ke pihak ketiga."},
+                            {"type":"D", "detail":"Daftar inventaris B3, Lembar Data Keselamatan Bahan (LDSB/MSDS), bukti serah terima limbah B3 (manifest) dengan pihak ketiga yang berizin."},
+                            {"type":"O", "detail":"Mengamati tempat penyimpanan B3 dan TPS Limbah B3 untuk memastikan sesuai standar (pelabelan, simbol, terpisah dari bahan lain)."}
+                        ]},
+                        {"id": "1.3.6", "text":"Tersedia bukti pengelolaan sampah domestik serta pengelolaan air limbah sesuai peraturan perundang-undangan.", "rdows": [
+                            {"type":"R", "detail":"SOP pengelolaan sampah domestik dan SOP pemeliharaan Instalasi Pengolahan Air Limbah (IPAL)."},
+                            {"type":"D", "detail":"Bukti kerja sama dengan dinas kebersihan untuk pengangkutan sampah domestik, bukti hasil pemeriksaan baku mutu air limbah dari laboratorium terakreditasi."},
+                            {"type":"O", "detail":"Mengamati ketersediaan tempat sampah terpilah dan kondisi TPS sampah domestik serta kondisi fisik IPAL."}
+                        ]},
+                        {"id": "1.3.7", "text":"Tersedia Alat Pemadam Api Ringan (APAR) dan bukti pemeliharaan APAR.", "rdows": [
+                            {"type":"D", "detail":"Daftar inventaris APAR dan kartu kontrol/bukti pemeliharaan (inspeksi) APAR yang rutin dilakukan."},
+                            {"type":"O", "detail":"Mengamati ketersediaan, lokasi, jenis, dan kondisi fisik APAR (segel, pin, tekanan) di seluruh area klinik."}
+                        ]},
+                        {"id": "1.3.8", "text":"Tersedia penanda jalur dan jalur evakuasi yang jelas.", "rdows": [
+                            {"type":"O", "detail":"Mengamati keberadaan, kejelasan, dan kondisi penunjuk arah jalur evakuasi, titik kumpul, dan denah evakuasi yang terpasang di lokasi strategis."}
+                        ]},
+                        {"id": "1.3.9", "text":"Tersedia bukti larangan merokok.", "rdows": [
+                            {"type":"R", "detail":"SK Penetapan Kawasan Tanpa Rokok (KTR) di klinik."},
+                            {"type":"O", "detail":"Mengamati ketersediaan dan pemasangan stiker atau papan pengumuman larangan merokok di seluruh area klinik."}
+                        ]},
+                        {"id": "1.3.10", "text":"Tersedia daftar inventaris, bukti pemeliharaan dan bukti kalibrasi peralatan medis dan bukti izin Bapeten untuk yang memiliki pelayanan radiologi.", "rdows": [
+                            {"type":"D", "detail":"Daftar inventaris peralatan medis, jadwal dan bukti pemeliharaan, serta sertifikat kalibrasi yang masih berlaku untuk setiap alat medis. Jika ada radiologi, harus ada bukti izin dari BAPETEN."},
+                            {"type":"O", "detail":"Mengamati stiker kalibrasi yang terpasang pada peralatan medis."}
+                        ]}
+                    ] },
+                    { "id": "TKK 4", "title": "Standar 1.4 Tata Kelola Kerja Sama", "elements": [
+                        {"id": "1.4.1", "text":"Ada dokumen kontrak atau perjanjian kerja sama yang jelas.", "rdows": [
+                            {"type":"D", "detail":"Memeriksa dokumen kontrak atau Perjanjian Kerja Sama (PKS) dengan pihak ketiga (misal: laboratorium, radiologi, cleaning service, pengelola limbah)."}
+                        ]},
+                        {"id": "1.4.2", "text":"Dokumen kontrak memiliki indikator kinerja pihak yang melakukan kerjasama.", "rdows": [
+                            {"type":"D", "detail":"Menelaah isi dokumen kontrak untuk memastikan tercantumnya indikator kinerja atau standar layanan yang harus dipenuhi oleh pihak ketiga."}
+                        ]},
+                        {"id": "1.4.3", "text":"Ada bukti monitoring dan evaluasi serta tindak lanjut terhadap pemenuhan indikator kinerja yang tercantum di dalam kontrak.", "rdows": [
+                            {"type":"D", "detail":"Dokumen bukti pelaksanaan monitoring dan evaluasi (ceklist, laporan evaluasi) terhadap kinerja pihak ketiga, serta bukti tindak lanjut jika kinerja tidak sesuai."}
+                        ]}
+                    ] }
+                ]
+            },
+            
+            "PMKP": {
+                "title": "BAB II: PENINGKATAN MUTU & KESELAMATAN PASIEN", "icon": "🛡️", "color": "emerald", "standards": [
+                    { "id": "PMKP 1", "title": "Standar 2.1 Upaya Peningkatan Mutu dan Keselamatan Pasien", "elements": [
+                        {"id":"2.1.1", "text":"Penanggung Jawab klinik menetapkan penanggung jawab program mutu.", "rdows": [
+                            {"type":"R", "detail":"SK Penetapan penanggung jawab/koordinator program Peningkatan Mutu dan Keselamatan Pasien (PMKP)."},
+                            {"type":"D", "detail":"Dokumen SK penunjukan yang sah."}
+                        ]},
+                        {"id":"2.1.2", "text":"Ada indikator mutu layanan yang diukur, dievaluasi, analisa dan tindak lanjut serta dilaporkan sesuai dengan ketentuan.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan/Pedoman PMKP yang mencakup penetapan jenis indikator (INM, prioritas klinik), prosedur pengukuran, analisis, dan pelaporannya."},
+                            {"type":"D", "detail":"Bukti pengumpulan data, analisis (misal: menggunakan run chart), rencana tindak lanjut perbaikan, bukti pelaksanaan tindak lanjut, dan laporan capaian indikator mutu kepada pimpinan."}
+                        ]},
+                        {"id":"2.1.3", "text":"Insiden keselamatan pasien dilaporkan dan dilakukan investigasi sesuai dengan ketentuan.", "rdows": [
+                            {"type":"R", "detail":"SOP Pelaporan dan investigasi insiden keselamatan pasien, termasuk alur pelaporan dan metode investigasi (misal: RCA untuk kejadian sentinel)."},
+                            {"type":"D", "detail":"Formulir laporan insiden keselamatan pasien (IKP), bukti investigasi (laporan RCA/investigasi sederhana), dan bukti tindak lanjut untuk mencegah kejadian berulang."}
+                        ]},
+                        {"id":"2.1.4", "text":"Ada daftar risiko klinik yang dibuat sekali dalam setahun dan dilakukan mitigasi resiko.", "rdows": [
+                            {"type":"R", "detail":"Pedoman manajemen risiko di klinik."},
+                            {"type":"D", "detail":"Dokumen daftar risiko (register risiko) klinik yang komprehensif (meliputi risiko klinis dan non-klinis) dan rencana mitigasi risiko (FMEA jika ada)."}
+                        ]},
+                        {"id":"2.1.5", "text":"Ada bukti tindak lanjut dari mitigasi resiko.", "rdows": [
+                            {"type":"D", "detail":"Bukti pelaksanaan tindak lanjut dari rencana mitigasi risiko yang telah dibuat."}
+                        ]}
+                    ] },
+                    { "id": "PMKP 2", "title": "Standar 2.2 Sasaran Keselamatan Pasien", "elements": [
+                        {"id":"2.2.1", "text":"Tersedia bukti identifikasi pasien sebelum intervensi kepada pasien sesuai dengan kebijakan dan prosedur yang ditetapkan.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan/SOP tentang identifikasi pasien (menetapkan minimal 2 identitas: nama, tanggal lahir, atau nomor rekam medis; dan kapan saja identifikasi harus dilakukan)."},
+                            {"type":"D", "detail":"Dokumentasi pada rekam medis yang membuktikan pelaksanaan identifikasi pasien sebelum tindakan/prosedur."},
+                            {"type":"O", "detail":"Mengamati langsung praktik identifikasi pasien oleh PPA (Profesional Pemberi Asuhan) di area pelayanan."}
+                        ]},
+                        {"id":"2.2.2", "text":"Tersedia bukti pelaksanaan komunikasi efektif yang didokumentasikan di rekam medik pasien.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan/SOP tentang komunikasi efektif, termasuk penggunaan metode SBAR saat serah terima dan TBaK (Tulis, Baca, Konfirmasi Kembali) untuk instruksi verbal."},
+                            {"type":"D", "detail":"Catatan komunikasi efektif dalam rekam medis pasien (misalnya stempel TBaK/SBAR, atau catatan terstruktur pada CPPT)."}
+                        ]},
+                        {"id":"2.2.3", "text":"Tersedia bukti pengelolaan keamanan obat resiko tinggi.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan/SOP tentang manajemen obat yang perlu diwaspadai (high-alert), termasuk daftar obat, prosedur pelabelan, penyimpanan, dan peresepan."},
+                            {"type":"D", "detail":"Daftar obat high-alert yang tersedia di unit-unit terkait."},
+                            {"type":"O", "detail":"Mengamati cara penyimpanan (terpisah/diberi label khusus) dan pelabelan obat high-alert, LASA (Look-Alike Sound-Alike), dan elektrolit konsentrat."}
+                        ]},
+                        {"id":"2.2.4", "text":"Penandaan sisi operasi/tindakan medis secara konsisten oleh pemberi pelayanan yang akan melakukan tindakan sesuai kebijakan dan prosedur yang ditetapkan yang didokumentasikan di rekam medik pasien.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang penandaan lokasi operasi/tindakan (site marking)."},
+                            {"type":"D", "detail":"Rekam medis pasien yang menjalani tindakan, menunjukkan adanya dokumentasi penandaan lokasi operasi."},
+                            {"type":"O", "detail":"Mengamati proses penandaan lokasi operasi pada pasien yang akan menjalani tindakan."}
+                        ]},
+                        {"id":"2.2.5", "text":"Tersedia bukti pelaksanaan Surgical Safety Checklist yang didokumentasikan di rekam medis pasien.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan/SOP tentang penerapan Surgical Safety Checklist (Checklist Keselamatan Bedah)."},
+                            {"type":"D", "detail":"Formulir Surgical Safety Checklist yang telah diisi lengkap (Fase Sign In, Time Out, Sign Out) dalam rekam medis pasien."}
+                        ]},
+                        {"id":"2.2.6", "text":"Ada media informasi penerapan kebersihan tangan sesuai ketentuan WHO.", "rdows": [
+                            {"type":"O", "detail":"Mengamati ketersediaan dan penempatan media informasi (poster, leaflet) tentang 6 langkah dan 5 momen kebersihan tangan di area yang mudah dilihat oleh staf, pasien, dan pengunjung."}
+                        ]},
+                        {"id":"2.2.7", "text":"Ada prosedur yang ditetapkan klinik dalam mencegah pasien cedera karena jatuh.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan/SOP tentang asesmen dan pencegahan risiko jatuh, termasuk instrumen asesmen yang digunakan (misal: Skala Morse untuk dewasa, Humpty Dumpty untuk anak)."}
+                        ]},
+                        {"id":"2.2.8", "text":"Ada bukti implementasi langkah-langkah pencegahan pasien jatuh.", "rdows": [
+                            {"type":"D", "detail":"Rekam medis pasien yang menunjukkan adanya asesmen risiko jatuh dan dokumentasi intervensi pencegahan yang dilakukan sesuai hasil asesmen."},
+                            {"type":"O", "detail":"Mengamati lingkungan klinik untuk upaya pencegahan jatuh (misal: lantai tidak licin, pegangan tangan, pencahayaan cukup) dan penggunaan penanda risiko jatuh pada pasien (misal: gelang kuning)."}
+                        ]}
+                    ] },
+                     { "id": "PMKP 3", "title": "Standar 2.3 Pencegahan dan Pengendalian Infeksi", "elements": [
+                        {"id":"2.3.1", "text":"Klinik menetapkan kebijakan dan prosedur PPI di klinik.", "rdows": [
+                            {"type":"R", "detail":"Dokumen kebijakan dan pedoman Pencegahan dan Pengendalian Infeksi (PPI) di klinik."},
+                            {"type":"D", "detail":"Kumpulan SOP terkait PPI (misal: SOP kebersihan tangan, SOP penggunaan APD, SOP dekontaminasi peralatan, dll)."}
+                        ]},
+                        {"id":"2.3.2", "text":"Ditetapkan program PPI di klinik.", "rdows": [
+                            {"type":"D", "detail":"Dokumen program kerja PPI tahunan yang komprehensif dan realistis."}
+                        ]},
+                        {"id":"2.3.3", "text":"Ada petugas yang kompeten yang bertanggung jawab melaksanakan, monitoring, mengevaluasi implementasi PPI di klinik serta melakukan edukasi dan sosialisasi secara berkala dan terdokumentasi.", "rdows": [
+                            {"type":"R", "detail":"SK penetapan penanggung jawab/koordinator/tim PPI."},
+                            {"type":"D", "detail":"Sertifikat pelatihan PPI dasar/lanjutan bagi penanggung jawab PPI. Bukti pelaksanaan monitoring (audit PPI), evaluasi, edukasi, dan sosialisasi (undangan, daftar hadir, materi, laporan)."}
+                        ]},
+                        {"id":"2.3.4", "text":"Tersedia bukti sarana kebersihan tangan dan staf klinik mampu mempraktekkan langkah langkah kebersihan tangan.", "rdows": [
+                            {"type":"O", "detail":"Mengamati ketersediaan sarana kebersihan tangan (wastafel dengan sabun dan air mengalir, hand sanitizer berbasis alkohol) di semua area pelayanan."}
+                        ]},
+                        {"id":"2.3.5", "text":"Tersedia bukti pelaksanaan program PPI di klinik.", "rdows": [
+                            {"type":"D", "detail":"Laporan pelaksanaan program PPI, termasuk data hasil surveilans (jika dilakukan), hasil audit kepatuhan, dan tindak lanjutnya."},
+                            {"type":"O", "detail":"Mengamati praktik PPI di seluruh area klinik (misal: praktik menyuntik yang aman, etika batuk, pengelolaan limbah)."}
+                        ]}
+                    ] }
+                ]
+            },
+            
+            "PKP": {
+                "title": "BAB III: PENYELENGGARAAN KESEHATAN PERSEORANGAN", "icon": "🩺", "color": "rose", "standards": [
+                    {"id": "PKP 1", "title": "Standar 3.1 Hak Pasien dan Keluarga", "elements": [
+                        {"id": "3.1.1", "text": "Tersedia bukti klinik mensosialisasikan hak dan kewajiban pasien.", "rdows": [
+                            {"type":"O", "detail":"Mengamati ketersediaan media sosialisasi seperti banner, poster, atau leaflet tentang hak dan kewajiban pasien di area pendaftaran, ruang tunggu, dan ruang pelayanan."},
+                            {"type":"D", "detail":"Dokumentasi foto media sosialisasi yang terpasang."}
+                        ]},
+                        {"id": "3.1.2", "text": "Tersedia bukti petugas menjelaskan tentang hak dan kewajiban pasien beserta keluarganya.", "rdows": [
+                            {"type":"D", "detail":"Formulir persetujuan umum (general consent) yang ditandatangani pasien, yang di dalamnya terdapat pernyataan bahwa pasien telah mendapatkan penjelasan tentang hak dan kewajibannya."}
+                        ]},
+                        {"id": "3.1.4", "text": "Ada pemenuhan hak pasien berkebutuhan khusus atau dalam kondisi khusus.", "rdows": [
+                            {"type":"O", "detail":"Mengamati ketersediaan fasilitas untuk pasien berkebutuhan khusus (misal: ramp, toilet khusus, kursi roda, penerjemah bahasa isyarat jika diperlukan) dan bagaimana petugas membantu pasien tersebut."},
+                            {"type":"R", "detail":"SOP pelayanan bagi pasien berkebutuhan khusus."}
+                        ]},
+                        {"id": "3.1.5", "text": "Tersedia petugas, media atau tempat untuk menyampaikan keluhan pelayanan bagi pasien atau keluarga.", "rdows": [
+                            {"type":"O", "detail":"Mengamati ketersediaan media penyampaian keluhan seperti kotak saran, nomor telepon pengaduan, atau adanya petugas khusus yang menangani keluhan."}
+                        ]},
+                        {"id": "3.1.6", "text": "Ada tindak lanjut keluhan oleh klinik dan dikomunikasikan dengan pasien atau keluarga.", "rdows": [
+                            {"type":"D", "detail":"Dokumen rekapitulasi keluhan, bukti analisis, dan bukti tindak lanjut yang telah dilakukan."}
+                        ]},
+                        {"id": "3.1.7", "text": "Ada dokumentasi pengaduan dan tindak lanjut yang telah dilakukan.", "rdows": [
+                            {"type":"D", "detail":"Menelaah buku register pengaduan atau sistem dokumentasi keluhan untuk melihat kelengkapan pencatatan dan tindak lanjutnya."}
+                        ]}
+                    ]},
+                    {"id": "PKP 2", "title": "Standar 3.2 Pasien dan Keluarga Dalam Proses Asuhan", "elements": [
+                        {"id": "3.2.1", "text": "Ada bukti pelaksanaan persetujuan tindakan kedokteran dan terdokumentasi di rekam medik pasien.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang persetujuan tindakan kedokteran (informed consent)."},
+                            {"type":"D", "detail":"Memeriksa kelengkapan pengisian formulir informed consent dalam rekam medis untuk tindakan yang memerlukannya."}
+                        ]},
+                        {"id": "3.2.2", "text": "Pasien atau keluarga mengetahui rencana asuhan, diagnostik dan kemungkinan hasil asuhan yang diberikan.", "rdows": [
+                            {"type":"D", "detail":"Catatan dalam rekam medis (misalnya di CPPT) yang menunjukkan bahwa PPA telah memberikan edukasi dan informasi mengenai rencana asuhan kepada pasien/keluarga."}
+                        ]}
+                    ]},
+                    {"id": "PKP 3", "title": "Standar 3.3 Akses Pasien Klinik", "elements": [
+                        {"id": "3.3.1", "text": "Ada prosedur pendaftaran yang ditetapkan.", "rdows": [{"type":"R", "detail":"SOP Pendaftaran Pasien."}] },
+                        {"id": "3.3.2", "text": "Ada bukti pelaksanaan pendaftaran sesuai regulasi yang ditetapkan.", "rdows": [
+                            {"type":"O", "detail":"Mengamati alur proses pendaftaran, mulai dari pasien datang hingga masuk ke ruang pemeriksaan."},
+                            {"type":"D", "detail":"Melihat formulir pendaftaran yang diisi pasien atau data yang diinput petugas ke dalam sistem."}
+                        ]},
+                        {"id": "3.3.3", "text": "Ada prosedur skrining yang ditetapkan.", "rdows": [{"type":"R", "detail":"SOP Skrining Pasien di bagian pendaftaran (misalnya skrining visual, triase sederhana)."}] },
+                        {"id": "3.3.4", "text": "Ada bukti pelaksanaan skrining sesuai regulasi yang ditetapkan.", "rdows": [
+                            {"type":"D", "detail":"Formulir skrining atau catatan hasil skrining yang terdokumentasi di rekam medis."}
+                        ]}
+                    ]},
+                    {"id": "PKP 4", "title": "Standar 3.4 Pengkajian Pasien", "elements": [
+                        {"id": "3.4.1", "text": "Ada bukti dilakukan kajian pasien oleh PPA dalam penetapan diagnosis yang dituangkan ke dalam rekam medis.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis untuk melihat kelengkapan catatan hasil anamnesis, pemeriksaan fisik, dan penunjang sebagai dasar penetapan diagnosis."}] },
+                        {"id": "3.4.2", "text": "Kajian awal sekurang kurangnya memuat data angka 1) sampai angka 5).", "rdows": [
+                            {"type":"D", "detail":"Memeriksa kelengkapan isi kajian awal di rekam medis, memastikan mencakup: status fisik, psikososial-spiritual, riwayat kesehatan, riwayat penggunaan obat, dan skrining gizi."},
+                            {"type":"R", "detail":"Kebijakan yang menetapkan isi minimal dari kajian awal pasien."}
+                        ]},
+                        {"id": "3.4.3", "text": "Kajian ulang dibuat dalam bentuk CPPT dan terdokumentasi di rekam medik.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis pasien rawat inap atau pasien dengan penyakit kronis untuk melihat adanya Catatan Perkembangan Pasien Terintegrasi (CPPT) yang diisi oleh berbagai PPA."}] }
+                    ]},
+                    {"id": "PKP 5", "title": "Standar 3.5 Rencana dan Pemberian Asuhan", "elements": [
+                        {"id": "3.5.1", "text": "Ada bukti rencana asuhan oleh PPA dan terdokumentasi di rekam medik pasien.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis untuk menemukan bagian yang berisi rencana asuhan yang terintegrasi, mencakup tujuan, intervensi, dan target yang terukur."}] },
+                        {"id": "3.5.2", "text": "Ada bukti pelaksanaan asuhan dan terdokumentasi di rekam medik pasien.", "rdows": [{"type":"D", "detail":"Mencocokkan catatan tindakan dan intervensi yang ada di CPPT dengan rencana asuhan yang telah dibuat."}] },
+                        {"id": "3.5.3", "text": "Ada bukti rencana asuhan dievaluasi secara berkala oleh pemberi asuhan.", "rdows": [
+                            {"type":"D", "detail":"Memeriksa CPPT atau bagian evaluasi di rekam medis untuk melihat adanya catatan evaluasi terhadap kemajuan pasien dan penyesuaian rencana asuhan."}
+                        ]}
+                    ]},
+                     {"id": "PKP 6", "title": "Standar 3.6 Pelayanan Promotif dan Preventif", "elements": [
+                        {"id": "3.6.1", "text": "Ada pelayanan promotif dan preventif yang dilakukan secara berkala.", "rdows": [
+                            {"type":"R", "detail":"Program kerja tahunan yang mencakup kegiatan pelayanan promotif dan preventif."},
+                            {"type":"D", "detail":"Jadwal kegiatan penyuluhan atau edukasi kesehatan."},
+                            {"type":"O", "detail":"Mengamati media promosi kesehatan yang tersedia di klinik (leaflet, poster, video)."}
+                        ]},
+                        {"id": "3.6.2", "text": "Ada bukti pelaksanaan dan laporan pelaksanaan program promotif dan preventif.", "rdows": [{"type":"D", "detail":"Dokumentasi pelaksanaan kegiatan (foto, daftar hadir, notulensi) dan laporan hasil kegiatan promotif dan preventif."}] }
+                    ]},
+                    {"id": "PKP 7", "title": "Standar 3.7 Pelayanan Pasien Risiko Tinggi dan Penyediaan Pelayanan Risiko Tinggi", "elements": [
+                        {"id": "3.7.1", "text": "Ada penetapan pelayanan pasien risiko tinggi pada klinik.", "rdows": [{"type":"R", "detail":"SK penetapan jenis-jenis pasien risiko tinggi dan pelayanan risiko tinggi yang dapat dilayani oleh klinik."}] },
+                        {"id": "3.7.2", "text": "Ada bukti pelaksanaan pemberian pelayanan pada pasien risiko tinggi dan pelayanan risiko tinggi sesuai SOP yang ada.", "rdows": [
+                            {"type":"R", "detail":"SOP penanganan untuk setiap jenis pasien/pelayanan risiko tinggi yang ditetapkan."},
+                            {"type":"D", "detail":"Memeriksa rekam medis pasien risiko tinggi untuk memastikan asuhan yang diberikan sesuai dengan SOP yang relevan."}
+                        ]}
+                    ]},
+                    {"id": "PKP 8", "title": "Standar 3.8 Pelayanan Anestesi dan Bedah", "elements": [
+                        {"id": "3.8.1", "text": "Klinik menetapkan prosedur pelayanan anestesi dan bedah sesuai kebutuhan.", "rdows": [{"type":"R", "detail":"SOP pelayanan anestesi dan SOP pelayanan bedah yang sesuai dengan kewenangan klinik."}] },
+                        {"id": "3.8.2", "text": "Pelayanan anestesi dan bedah dilakukan oleh tenaga medis yang kompeten sesuai dengan ketentuan peraturan perundang-undangan.", "rdows": [{"type":"D", "detail":"Memeriksa file kepegawaian dokter/dokter gigi yang melakukan tindakan untuk memastikan memiliki STR, SIP, dan kewenangan klinis yang sesuai."}] },
+                        {"id": "3.8.3", "text": "Jenis, dosis dan teknik anestesi dan pemantauan status fisiologi pasien selama pemberian anestesi oleh petugas dicatat dalam rekam medis pasien.", "rdows": [{"type":"D", "detail":"Memeriksa formulir anestesi di rekam medis untuk melihat kelengkapan pencatatan jenis obat, dosis, teknik, dan hasil pemantauan tanda-tanda vital selama prosedur."}] },
+                        {"id": "3.8.4", "text": "Ada bukti pelaksanaan kajian pra bedah.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis untuk menemukan catatan/formulir kajian pra-bedah yang telah diisi lengkap sebelum tindakan."}] },
+                        {"id": "3.8.5", "text": "Ada bukti pelaksanaan kajian pra anestesi.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis untuk menemukan catatan/formulir kajian pra-anestesi yang telah diisi lengkap sebelum tindakan."}] },
+                        {"id": "3.8.6", "text": "Ada bukti pemantauan dan evaluasi paska anestesi dan bedah.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis untuk menemukan catatan pemantauan di ruang pemulihan (jika ada) atau catatan evaluasi kondisi pasien setelah tindakan selesai."}] }
+                    ]},
+                    {"id": "PKP 9", "title": "Standar 3.9 Pelayanan Gizi", "elements": [
+                        {"id": "3.9.1", "text": "Asuhan gizi dilakukan oleh petugas yang berkompeten sesuai dengan ketentuan peraturan perundang-undangan.", "rdows": [{"type":"D", "detail":"Memeriksa file kepegawaian ahli gizi/dietisien untuk memastikan memiliki STR dan kualifikasi yang sesuai."}] },
+                        {"id": "3.9.2", "text": "Disusun rencana asuhan gizi berdasarkan kajian kebutuhan gizi pada pasien sesuai dengan kondisi kesehatan dan kebutuhan pasien.", "rdows": [{"type":"D", "detail":"Memeriksa rekam medis pasien (terutama rawat inap) untuk menemukan adanya asesmen gizi dan rencana asuhan gizi yang dibuat oleh petugas kompeten."}] },
+                        {"id": "3.9.3", "text": "Distribusi dan pemberian makanan dilakukan sesuai jadwal dan pemesanan dan di dokumentasikan.", "rdows": [
+                            {"type":"O", "detail":"Mengamati proses distribusi makanan kepada pasien rawat inap."},
+                            {"type":"D", "detail":"Memeriksa catatan atau dokumentasi pemberian makanan kepada pasien."}
+                        ]},
+                        {"id": "3.9.4", "text": "Pasien dan/atau keluarga diberi edukasi tentang pembatasan diet pasien dan keamanan atau kebersihan makanan.", "rdows": [
+                            {"type":"D", "detail":"Lembar edukasi gizi atau catatan pemberian edukasi dalam CPPT di rekam medis."}
+                        ]}
+                    ]},
+                    {"id": "PKP 10", "title": "Standar 3.10 Pemulangan dan Tindak Lanjut Perawatan", "elements": [
+                        {"id": "3.10.1", "text": "Dokter melaksanakan pemulangan dan menyusun rencana tindak lanjut sesuai dengan rencana yang disusun dan kriteria pemulangan.", "rdows": [
+                            {"type":"R", "detail":"SOP dan kriteria pemulangan pasien."},
+                            {"type":"D", "detail":"Memeriksa rekam medis pasien yang telah pulang untuk melihat adanya rencana tindak lanjut (misal: jadwal kontrol, rujukan balik)."}
+                        ]},
+                        {"id": "3.10.2", "text": "Ada bukti ringkasan pulang pasien dalam rekam medis.", "rdows": [{"type":"D", "detail":"Memeriksa kelengkapan pengisian formulir resume medis/ringkasan pulang dalam rekam medis pasien."}] },
+                        {"id": "3.10.3", "text": "Ada bukti pemberian informasi kepada pasien saat pulang.", "rdows": [
+                            {"type":"D", "detail":"Formulir ringkasan pulang yang juga diserahkan kepada pasien dan ditandatangani sebagai bukti telah menerima informasi."}
+                        ]}
+                    ]},
+                    {"id": "PKP 11", "title": "Standar 3.11 Pelayanan Rujukan", "elements": [
+                        {"id": "3.11.1", "text": "Ada tata cara dan prosedur rujukan pasien.", "rdows": [{"type":"R", "detail":"SOP rujukan pasien, baik rujukan keluar maupun rujukan internal."}] },
+                        {"id": "3.11.2", "text": "Klinik yang merujuk pasien memastikan bahwa fasyankes yang dituju dapat memenuhi kebutuhan pasien.", "rdows": [
+                            {"type":"D", "detail":"Catatan di rekam medis atau buku rujukan yang menunjukkan adanya komunikasi dengan fasyankes tujuan sebelum merujuk."}
+                        ]},
+                        {"id": "3.11.3", "text": "Pasien/keluarga memperoleh informasi rujukan dan memberi persetujuan untuk dilakukan rujukan berdasarkan kebutuhan pasien.", "rdows": [
+                            {"type":"D", "detail":"Formulir persetujuan rujukan yang telah ditandatangani oleh pasien/keluarga dalam rekam medis."}
+                        ]},
+                        {"id": "3.11.4", "text": "Ada sarana transportasi rujukan yang memenuhi syarat (khusus klinik yang menyelenggarakan pelayanan rawat inap).", "rdows": [
+                            {"type":"O", "detail":"Mengamati ketersediaan dan kelayakan ambulans, termasuk kelengkapan peralatannya."},
+                            {"type":"D", "detail":"Jika bekerja sama, periksa dokumen PKS dengan penyedia layanan ambulans."}
+                        ]},
+                        {"id": "3.11.5", "text": "Ada daftar jejaring rujukan klinik.", "rdows": [
+                            {"type":"D", "detail":"Daftar fasyankes rujukan beserta jenis layanan yang tersedia di masing-masing fasyankes."},
+                            {"type":"O", "detail":"Melihat apakah daftar jejaring rujukan ini mudah diakses oleh PPA."}
+                        ]}
+                    ]},
+                    {"id": "PKP 12", "title": "Standar 3.12 Penyelenggaraan Rekam Medis", "elements": [
+                        {"id": "3.12.1", "text": "Ada bukti penyelenggaraan rekam medis.", "rdows": [
+                            {"type":"R", "detail":"Kebijakan tentang penyelenggaraan rekam medis di klinik."},
+                            {"type":"O", "detail":"Mengamati keberadaan dan penggunaan rekam medis (elektronik atau kertas) dalam proses pelayanan."}
+                        ]},
+                        {"id": "3.12.2", "text": "Ada bukti rekam medis diisi secara lengkap oleh Profesional Pemberi Asuhan (PPA).", "rdows": [{"type":"D", "detail":"Melakukan audit/review terhadap sejumlah sampel rekam medis untuk menilai kelengkapan pengisiannya oleh PPA."}] },
+                        {"id": "3.12.3", "text": "Ada tata cara penyimpanan, peminjaman dan pemusnahan rekam medis.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang penyimpanan, peminjaman, pemusnahan rekam medis, serta retensi arsip rekam medis."},
+                            {"type":"O", "detail":"Mengamati ruang penyimpanan rekam medis untuk memastikan keamanan dan keteraturannya."}
+                        ]},
+                        {"id": "3.12.4", "text": "Ada bukti klinik menjaga kerahasiaan rekam medis pasien.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang pelepasan informasi medis dan penjagaan kerahasiaan rekam medis."},
+                            {"type":"O", "detail":"Mengamati bagaimana rekam medis disimpan dan diakses untuk memastikan hanya petugas berwenang yang dapat mengaksesnya."}
+                        ]}
+                    ]},
+                    {"id": "PKP 13", "title": "Standar 3.13 Pelayanan Laboratorium", "elements": [
+                        {"id": "3.13.1", "text": "Ada penetapan jenis-jenis pelayanan laboratorium yang disediakan.", "rdows": [
+                            {"type":"R", "detail":"SK Penanggung Jawab Klinik tentang jenis-jenis pemeriksaan laboratorium yang dapat dilakukan."},
+                            {"type":"O", "detail":"Melihat daftar/brosur jenis pemeriksaan laboratorium yang tersedia bagi pasien."}
+                        ]},
+                        {"id": "3.13.2", "text": "Terdapat Penanggung Jawab Laboratorium sesuai perundang-undangan yang berlaku.", "rdows": [
+                            {"type":"R", "detail":"SK penunjukan Penanggung Jawab Laboratorium."},
+                            {"type":"D", "detail":"Memeriksa file kepegawaian Penanggung Jawab Laboratorium untuk melihat kualifikasi (ijazah, STR, SIP) yang sesuai."}
+                        ]},
+                        {"id": "3.13.3", "text": "Klinik menetapkan rentang nilai normal untuk setiap jenis pemeriksaan yang disediakan.", "rdows": [
+                            {"type":"D", "detail":"Dokumen atau daftar rentang nilai normal yang digunakan sebagai acuan."},
+                            {"type":"O", "detail":"Memeriksa lembar hasil laboratorium untuk memastikan tercantumnya rentang nilai normal."}
+                        ]},
+                        {"id": "3.13.4", "text": "Ada bukti reagensia esensial dan bahan lain tersedia sesuai dengan jenis pelayanan yang ditetapkan, pelabelan dan penyimpanannya.", "rdows": [
+                            {"type":"D", "detail":"Kartu stok atau catatan keluar masuk reagensia."},
+                            {"type":"O", "detail":"Mengamati tempat penyimpanan reagensia untuk memastikan suhu penyimpanan sesuai, pelabelan benar (termasuk tanggal buka dan kadaluarsa), dan stok mencukupi."}
+                        ]},
+                        {"id": "3.13.5", "text": "Ada prosedur pelaporan, pencatatan dan tindak lanjut hasil laboratorium kritis.", "rdows": [
+                            {"type":"R", "detail":"SOP Pelaporan Hasil Kritis Laboratorium."},
+                            {"type":"D", "detail":"Buku atau catatan pelaporan hasil kritis, termasuk siapa yang melaporkan, siapa yang menerima, jam lapor, dan tindak lanjutnya."}
+                        ]},
+                        {"id": "3.13.6", "text": "Ada prosedur rujukan spesimen dan/ atau pengguna layanan, jika pemeriksaan laboratorium tidak dapat dilakukan oleh klinik.", "rdows": [
+                            {"type":"R", "detail":"SOP Rujukan Laboratorium."},
+                            {"type":"D", "detail":"PKS dengan laboratorium rujukan dan bukti pelaksanaan rujukan (formulir, buku ekspedisi)."}
+                        ]},
+                        {"id": "3.13.7", "text": "Ada bukti pelaksanaan Pemantapan Mutu Internal (PMI) dan Pemantapan Mutu Eksternal (PME) secara berkala.", "rdows": [{"type":"D", "detail":"Hasil pelaksanaan PMI harian (catatan, grafik Levey-Jennings) dan sertifikat keikutsertaan PME dari penyelenggara resmi."}] }
+                    ]},
+                    {"id": "PKP 14", "title": "Standar 3.14 Pelayanan Radiologi", "elements": [
+                        {"id": "3.14.1", "text": "Klinik menerapkan prosedur pelayanan radiologi.", "rdows": [{"type":"R", "detail":"SOP pelayanan radiologi untuk setiap jenis pemeriksaan yang disediakan."}] },
+                        {"id": "3.14.2", "text": "Ada bukti pelayanan radiologi sesuai dengan prosedur yang ada termasuk kepatuhan terhadap manajemen keamanan radiasi.", "rdows": [
+                            {"type":"D", "detail":"Bukti pelaksanaan program manajemen keamanan radiasi (laporan inspeksi, catatan pemeliharaan alat, hasil pemantauan dosis radiasi staf/film badge)."},
+                            {"type":"O", "detail":"Mengamati ketersediaan dan penggunaan APD (apron, dll) oleh staf dan pasien, serta penanda peringatan bahaya radiasi."}
+                        ]}
+                    ]},
+                    {"id": "PKP 15", "title": "Standar 3.15 Pelayanan Kefarmasian", "elements": [
+                        {"id": "3.15.1", "text": "Tersedia bukti pengelolaan dan pelayanan sediaan farmasi BMHP dan alat kesehatan oleh tenaga kefarmasian sesuai dengan ketentuan peraturan perundang-undangan.", "rdows": [
+                            {"type":"R", "detail":"SOP pengelolaan sediaan farmasi, BMHP, dan alkes (mulai dari perencanaan, pengadaan, penerimaan, penyimpanan, distribusi, hingga pemusnahan)."},
+                            {"type":"D", "detail":"Memeriksa file kepegawaian tenaga kefarmasian (Apoteker, TTK) untuk melihat kualifikasi yang sesuai (STR, SIP/SIK)."}
+                        ]},
+                        {"id": "3.15.2", "text": "Tersedia daftar formularium obat klinik.", "rdows": [
+                            {"type":"R", "detail":"SK Penetapan Formularium Klinik."},
+                            {"type":"D", "detail":"Dokumen Formularium Klinik yang masih berlaku dan menjadi acuan peresepan."}
+                        ]},
+                        {"id": "3.15.3", "text": "Ada kebijakan dan atau prosedur pengadaan obat sesuai dengan regulasi.", "rdows": [
+                            {"type":"R", "detail":"SOP pengadaan obat."},
+                            {"type":"D", "detail":"Surat pesanan (SP) obat yang sah dan ditandatangani Apoteker, faktur pembelian dari PBF resmi."}
+                        ]},
+                        {"id": "3.15.4", "text": "Tersedia bukti dilakukan pengkajian resep dan pemberian obat dengan benar pada setiap pelayanan pemberian obat.", "rdows": [
+                            {"type":"R", "detail":"SOP pengkajian resep dan pelayanan resep."},
+                            {"type":"D", "detail":"Lembar pengkajian resep atau catatan di balik resep."},
+                            {"type":"O", "detail":"Mengamati proses pelayanan resep, mulai dari skrining hingga penyerahan obat kepada pasien."}
+                        ]},
+                        {"id": "3.15.5", "text": "Tersedia bukti pemberian informasi obat dan konseling oleh Apoteker.", "rdows": [
+                            {"type":"D", "detail":"Formulir atau catatan konseling obat."},
+                            {"type":"O", "detail":"Mengamati proses penyerahan obat yang disertai pemberian informasi, dan adanya ruang/area khusus untuk konseling."}
+                        ]},
+                        {"id": "3.15.6", "text": "Tersedia bukti rekonsiliasi obat pada pelayanan rawat inap sesuai dengan ketentuan peraturan perundang-undangan.", "rdows": [
+                            {"type":"R", "detail":"SOP rekonsiliasi obat."},
+                            {"type":"D", "detail":"Formulir rekonsiliasi obat yang diisi saat pasien masuk, pindah unit, dan sebelum pulang."}
+                        ]},
+                        {"id": "3.15.7", "text": "Tersedia obat emergensi pada unit-unit dimana diperlukan, dan dapat diakses untuk memenuhi kebutuhan yang bersifat emergensi, dipantau, dan diganti tepat waktu setelah digunakan atau bila kadaluarsa.", "rdows": [
+                            {"type":"R", "detail":"SK tentang daftar obat emergensi dan penempatannya."},
+                            {"type":"D", "detail":"Ceklis pemantauan isi troli/kit emergensi."},
+                            {"type":"O", "detail":"Mengamati ketersediaan, kelengkapan, dan kondisi obat emergensi di lokasi yang ditetapkan (misal: UGD)."}
+                        ]},
+                        {"id": "3.15.8", "text": "Tersedia bukti penyimpanan dan pelaporan obat narkotika serta psikotropika sesuai dengan regulasi.", "rdows": [
+                            {"type":"R", "detail":"SOP pengelolaan obat narkotika dan psikotropika."},
+                            {"type":"D", "detail":"Laporan penggunaan dan sisa stok narkotika/psikotropika, serta bukti pelaporan melalui SIPNAP."},
+                            {"type":"O", "detail":"Mengamati tempat penyimpanan narkotika/psikotropika (lemari khusus, kunci ganda)."}
+                        ]},
+                        {"id": "3.15.9", "text": "Tersedia bukti penyimpanan obat termasuk obat high alert yang baik, benar dan aman sesuai regulasi.", "rdows": [{"type":"O", "detail":"Mengamati sistem penyimpanan obat secara umum (metode FEFO/FIFO, suhu penyimpanan) dan penyimpanan khusus untuk obat high-alert (pelabelan, pemisahan)."}] },
+                        {"id": "3.15.10", "text": "Tersedia kebijakan dan atau prosedur penanganan obat kadaluarsa/rusak.", "rdows": [
+                            {"type":"R", "detail":"SOP penanganan obat kadaluarsa/rusak."},
+                            {"type":"D", "detail":"Berita acara pemusnahan obat atau bukti pengembalian obat ke PBF."},
+                            {"type":"O", "detail":"Mengamati adanya area karantina untuk obat kadaluarsa/rusak."}
+                        ]},
+                        {"id": "3.15.11", "text": "Terdapat pencatatan dan pelaporan MESO/Monitoring Efek Samping Obat.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang pemantauan dan pelaporan efek samping obat."},
+                            {"type":"D", "detail":"Formulir MESO yang telah diisi dan bukti pelaporannya."}
+                        ]},
+                        {"id": "3.15.12", "text": "Ada kebijakan dan atau prosedur pemantauan dan pelaporan medication error.", "rdows": [
+                            {"type":"R", "detail":"SOP tentang pelaporan dan penanganan medication error."},
+                            {"type":"D", "detail":"Laporan insiden medication error (jika pernah terjadi)."}
+                        ]},
+                        {"id": "3.15.13", "text": "Dalam hal klinik tidak memiliki apoteker, sebagai penanggung jawab pelayanan kefarmasian, ada bukti bahwa klinik hanya mengelola obat darurat medis sesuai dengan ketentuan peraturan perundang-undangan.", "rdows": [
+                            {"type":"D", "detail":"Daftar obat emergensi yang tersedia di klinik."},
+                            {"type":"O", "detail":"Memastikan tidak ada pelayanan kefarmasian (peresepan) di luar pengelolaan obat darurat medis jika tidak ada apoteker."}
+                        ]}
+                    ]}
+                ]
+            }
+        };
+
+        let GAS_WEB_APP_URL = localStorage.getItem(STORAGE_KEY_GAS) || ''; 
+
+        const fileRegistry = {};
+        let currentUploadTarget = {
+            babTitle: '',
+            standardId: '',
+            epId: '',
+            rdowsType: '',
+            buttonElement: null,
+            slotId: ''
+        };
+
+        // Modal logic
+        const modal = document.getElementById('setupModal');
+        const modalContent = document.getElementById('setupModalContent');
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msg = document.getElementById('toastMessage');
+
+            msg.textContent = message;
+
+            toast.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 z-50 flex items-center gap-3 font-medium text-sm max-w-sm ${
+                type === 'success' ? 'bg-emerald-600 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-600 text-white'
+            }`;
+
+            icon.className = `text-lg ${
+                type === 'success' ? 'fa-solid fa-check-circle' :
+                type === 'error' ? 'fa-solid fa-triangle-exclamation' :
+                'fa-solid fa-info-circle spinner'
+            }`;
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    toast.classList.add('translate-y-24', 'opacity-0');
+                }, 3500);
+            }
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.add('translate-y-24', 'opacity-0');
+        }
+
+        function openSetupModal() {
+            document.getElementById('gasUrlInput').value = GAS_WEB_APP_URL;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeSetupModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gasUrlInput').value.trim();
+            if(url && !url.startsWith('https://script.google.com/')) {
+                showToast('URL tidak valid. Harus berawalan https://script.google.com/', 'error');
+                return;
+            }
+            GAS_WEB_APP_URL = url;
+            localStorage.setItem(STORAGE_KEY_GAS, url);
+            showToast('URL Google Apps Script berhasil disimpan!');
+            closeSetupModal();
+        }
+
+        function copyScriptCode() {
+            const code = document.getElementById('gasScriptCode').innerText;
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = code;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('Kode Script disalin ke clipboard');
+            } catch (err) {
+                showToast('Gagal menyalin kode', 'error');
+            }
+            document.body.removeChild(tempTextArea);
+        }
+
+        function getRdowsIcon(type) {
+            switch(type) {
+                case 'R': return '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold text-xs border border-blue-200">R</span>'; 
+                case 'D': return '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold text-xs border border-green-200">D</span>'; 
+                case 'O': return '<span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-bold text-xs border border-yellow-200">O</span>'; 
+                default: return '';
+            }
+        }
+
+        function renderExplorerContent() {
+            const container = document.getElementById('explorer-content');
+            container.innerHTML = '';
+            
+            Object.entries(accreditationData).forEach(([babKey, babData]) => {
+                const babWrapper = document.createElement('div');
+                const babHeader = document.createElement('div');
+                babHeader.className = `p-4 bg-${babData.color}-50 border-b border-slate-200 text-lg font-bold text-${babData.color}-800 flex items-center gap-2`;
+                babHeader.innerHTML = `<span>${babData.icon}</span> ${babData.title}`;
+                babWrapper.appendChild(babHeader);
+
+                const safeBabTitle = babData.title.replace(/:/g, ' -').replace(/[\/\\?*|<>"]/g, '');
+
+                babData.standards.forEach(standard => {
+                    const stdAccordion = document.createElement('div');
+                    stdAccordion.className = 'border-b border-slate-200 last:border-b-0';
+
+                    const stdHeader = document.createElement('button');
+                    stdHeader.className = 'w-full flex justify-between items-center p-4 hover:bg-slate-50 transition-colors focus:outline-none group';
+                    stdHeader.innerHTML = `
+                        <h3 class="font-semibold text-slate-700 text-left group-hover:text-blue-600 transition-colors">${standard.id}: ${standard.title}</h3>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300"></i>
+                    `;
+                    
+                    const stdContent = document.createElement('div');
+                    stdContent.className = 'accordion-content bg-slate-50/50 px-4 pb-0';
+
+                    standard.elements.forEach(element => {
+                        // Lewati bila EP tidak memiliki RDOWS setelah difilter (misal hanya W/S)
+                        if(!element.rdows || element.rdows.length === 0) return;
+
+                        const epCard = document.createElement('div');
+                        epCard.className = 'bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-4 ml-2 border-l-4 border-l-primary';
+                        
+                        let rdowsHtml = '';
+                        element.rdows.forEach((r, index) => {
+                            const slotId = `${standard.id.replace(/\s+/g, '')}_${element.id.replace(/\./g, '_')}_${r.type}_${index}`;
+                            
+                            rdowsHtml += `
+                                <div class="mt-4 pt-4 border-t border-slate-100">
+                                    <div class="flex items-start gap-3 mb-3">
+                                        <div class="mt-0.5">${getRdowsIcon(r.type)}</div>
+                                        <p class="text-sm text-slate-600 leading-relaxed">${r.detail}</p>
+                                    </div>
+                                    
+                                    <!-- Tempat daftar file yang diunggah secara berurutan -->
+                                    <div id="fileList_${slotId}" class="flex flex-col gap-2 mb-3 pl-9 empty:hidden"></div>
+
+                                    <!-- Area Tombol Aksi Cloud -->
+                                    <div class="flex flex-wrap items-center gap-2 pl-9">
+                                        <button id="btnUpload_${slotId}" onclick="triggerUpload('${safeBabTitle}', '${standard.id}', '${element.id}', '${r.type}', this, '${slotId}')" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-md text-xs font-semibold hover:bg-slate-50 hover:text-blue-600 transition shadow-sm">
+                                            <i class="fa-solid fa-cloud-arrow-up text-blue-500"></i> <span class="btn-text">Unggah Bukti</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        epCard.innerHTML = `
+                            <div class="flex items-start justify-between gap-4">
+                                <p class="font-bold text-slate-800 text-sm leading-relaxed"><span class="text-blue-600">EP ${element.id}</span> — ${element.text}</p>
+                            </div>
+                            ${rdowsHtml}
+                        `;
+                        stdContent.appendChild(epCard);
+                    });
+
+                    if(stdContent.lastChild) {
+                        stdContent.lastChild.classList.add('mb-0');
+                        stdContent.style.paddingBottom = '1rem';
+                    }
+
+                    // Logika Buka/Tutup Accordion
+                    stdHeader.addEventListener('click', () => {
+                        const icon = stdHeader.querySelector('i');
+                        const isOpen = stdContent.classList.contains('open');
+                        
+                        if (!isOpen) {
+                            stdContent.classList.add('open');
+                            stdContent.style.paddingTop = '1rem';
+                            icon.style.transform = 'rotate(180deg)';
+                        } else {
+                            stdContent.classList.remove('open');
+                            stdContent.style.paddingTop = '0';
+                            icon.style.transform = 'rotate(0deg)';
+                        }
+                    });
+
+                    stdAccordion.appendChild(stdHeader);
+                    stdAccordion.appendChild(stdContent);
+                    babWrapper.appendChild(stdAccordion);
+                });
+                
+                container.appendChild(babWrapper);
+            });
+        }
+
+        function triggerUpload(babTitle, standardId, epId, rdowsType, btnElement, slotId) {
+            currentUploadTarget = { babTitle, standardId, epId, rdowsType, buttonElement: btnElement, slotId: slotId };
+            document.getElementById('hiddenFileInput').click();
+        }
+
+        document.getElementById('hiddenFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = ''; // Reset
+            processFileUpload(file);
+        });
+
+        function processFileUpload(file) {
+            const target = currentUploadTarget;
+            const maxSize = 5 * 1024 * 1024; // Limit 5MB
+            
+            if (file.size > maxSize) {
+                showToast('Ukuran file terlalu besar (Maks 5MB)', 'error');
+                return;
+            }
+
+            // PENAMAAN OTOMATIS YANG CERDAS: Mencegah double prefix (misal: R - R - file.pdf)
+            const prefix = `${target.rdowsType} - `;
+            let formattedFileName = file.name;
+            if (!formattedFileName.startsWith(prefix)) {
+                formattedFileName = prefix + file.name;
+            }
+
+            const originalBtnHtml = target.buttonElement.innerHTML;
+            target.buttonElement.innerHTML = '<i class="fa-solid fa-circle-notch spinner text-blue-500"></i> Mengunggah...';
+            target.buttonElement.disabled = true;
+            
+            showToast('Sedang memproses dan mengunggah ke Drive...', 'loading');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                const folderPath = `Bukti_Akreditasi/${target.babTitle}/${target.standardId}/EP_${target.epId}`;
+
+                const payload = {
+                    fileName: formattedFileName, 
+                    mimeType: file.type,
+                    fileBase64: base64Data,
+                    folderPath: folderPath
+                };
+
+                // SIMULASI (Bila URL GAS Kosong)
+                if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.trim() === '') {
+                    setTimeout(() => {
+                        hideToast();
+                        const localUrl = URL.createObjectURL(file);
+                        const fileObj = { name: formattedFileName, url: localUrl };
+                        
+                        saveFileRegistry(target.slotId, fileObj);
+                        
+                        target.buttonElement.innerHTML = originalBtnHtml;
+                        target.buttonElement.disabled = false;
+                        
+                        updateUIAfterUpload(target.slotId, fileObj);
+                        showToast('SIMULASI: File disimpan. Setup Drive untuk unggah ke cloud.', 'success');
+                    }, 1500);
+                    return;
+                }
+
+                // PRODUKSI: Kirim ke Google Apps Script
+                fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    hideToast();
+                    target.buttonElement.innerHTML = originalBtnHtml;
+                    target.buttonElement.disabled = false;
+
+                    if (result.success) {
+                        const fileObj = { name: formattedFileName, url: result.url };
+                        saveFileRegistry(target.slotId, fileObj);
+                        updateUIAfterUpload(target.slotId, fileObj);
+                        showToast(`Berhasil diunggah ke folder: ${target.standardId}/EP_${target.epId}`, 'success');
+                    } else {
+                        showToast('Gagal mengunggah: ' + result.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideToast();
+                    target.buttonElement.innerHTML = originalBtnHtml;
+                    target.buttonElement.disabled = false;
+                    console.error('Upload Error:', error);
+                    showToast('Terjadi kesalahan koneksi ke Google Drive.', 'error');
+                });
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        // Update UI untuk Multi-File / Tambah Bukti
+        function saveFileRegistry(slotId, fileObj) {
+            if (!fileRegistry[slotId]) {
+                fileRegistry[slotId] = []; 
+            }
+            fileRegistry[slotId].push(fileObj); 
+        }
+
+        function updateUIAfterUpload(slotId, fileObj) {
+            const fileListContainer = document.getElementById(`fileList_${slotId}`);
+            const uploadBtn = document.getElementById(`btnUpload_${slotId}`);
+            const btnText = uploadBtn.querySelector('.btn-text');
+            
+            // Ubah teks tombol menjadi "Tambah Bukti" setelah upload pertama kali
+            if (btnText) {
+                btnText.textContent = "Tambah Bukti";
+            }
+            
+            // Buat elemen visual file yang bisa diklik / didownload dengan nama yang benar
+            const fileLink = document.createElement('a');
+            fileLink.href = fileObj.url;
+            fileLink.target = "_blank";
+            fileLink.download = fileObj.name; // MEMAKSA NAMA FILE SAAT UNDUH SIMULASI
+            fileLink.className = "inline-flex items-center justify-between gap-3 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-md text-xs hover:bg-emerald-100 transition shadow-sm w-fit max-w-full group";
+            
+            fileLink.innerHTML = `
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <i class="fa-brands fa-google-drive text-emerald-600 shrink-0"></i>
+                    <span class="truncate font-medium group-hover:underline" title="${fileObj.name}">${fileObj.name}</span>
+                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-70 shrink-0 group-hover:opacity-100"></i>
+            `;
+            
+            fileListContainer.appendChild(fileLink);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderExplorerContent();
+            
+            if(!GAS_WEB_APP_URL) {
+                setTimeout(() => {
+                    showToast('Klik "Setup Google Drive" untuk menyambungkan dengan cloud Anda.', 'loading');
+                    setTimeout(hideToast, 4000);
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
