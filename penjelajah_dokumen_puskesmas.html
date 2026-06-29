@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penjelajah Dokumen Puskesmas | Integrasi Google Drive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        // Pengecekan Keamanan (Bypass untuk Canvas/Localhost)
+        (function() {
+            const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "";
+            const isCanvasPreview = window.self !== window.top || window.location.hostname.includes("google") || window.location.hostname.includes("sandbox");
+            
+            if (!isLoggedIn && !isLocal && !isCanvasPreview) {
+                window.location.href = 'index.html'; 
+            }
+        })();
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        navy: '#0f172a',
+                        primary: '#0f766e', /* teal-700 untuk Puskesmas */
+                        drive: '#1fa463'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #f8fafc; }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease;
+        }
+        .accordion-content.open {
+            max-height: 15000px; /* Diperbesar agar cukup menampung kriteria Puskesmas yang panjang */
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ul.list-circle { list-style-type: circle; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased font-sans flex flex-col h-screen overflow-hidden">
+
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row items-center justify-between z-30 shadow-sm flex-shrink-0 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center text-xl shadow-inner border border-teal-100">
+                <i class="fa-solid fa-hospital"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-navy text-lg leading-tight">Manajemen Dokumen Akreditasi Puskesmas</h1>
+                <p id="headerSubtitle" class="text-xs text-slate-500">Terintegrasi dengan Google Drive Folder Otomatis</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <a href="dashboard.html" class="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition">
+                <i class="fa-solid fa-arrow-left"></i> Kembali
+            </a>
+            <button onclick="openSetupModal()" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition shadow-md">
+                <i class="fa-solid fa-gear"></i> Setup Drive
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-8">
+        <div class="max-w-6xl mx-auto">
+            
+            <div class="bg-teal-50 border border-teal-200 text-teal-800 p-4 rounded-xl mb-6 flex items-start gap-3 shadow-sm">
+                <i class="fa-solid fa-circle-info text-teal-600 mt-0.5"></i>
+                <div class="text-sm">
+                    <p class="font-semibold mb-1">Fokus Fasyankes & Penamaan Cerdas Otomatis</p>
+                    <p>Sistem difilter untuk fasyankes: mengunggah dokumen bukti <b>(R, D, O)</b>. Wawancara (W) dan Simulasi (S) tidak memerlukan dokumen. Apapun nama asli file Anda, sistem akan membuangnya dan menamai ulang secara otomatis menjadi:<br>
+                    <b class="text-teal-900 bg-teal-100/50 px-2 py-0.5 rounded font-mono text-xs mt-1 inline-block border border-teal-200">EP [Kode] - R/D/O (Jenis Bukti) - Konsep Judul EP.pdf</b></p>
+                </div>
+            </div>
+
+            <!-- Tempat Akordion Render -->
+            <div id="explorer-content" class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden mb-10">
+                <!-- Konten akan dirender oleh JavaScript -->
+            </div>
+
+        </div>
+    </main>
+
+    <input type="file" id="hiddenFileInput" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png,.jpeg,.mp4">
+    
+    <div id="toast" class="fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 translate-y-24 opacity-0 z-50 flex items-center gap-3 font-medium text-sm max-w-sm">
+        <i id="toastIcon" class="fa-solid fa-check-circle text-lg"></i>
+        <span id="toastMessage">Pesan Notifikasi</span>
+    </div>
+
+    <!-- Modal Setup Google Drive -->
+    <div id="setupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="setupModalContent">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <h3 class="font-bold text-lg text-navy flex items-center gap-2">
+                    <i class="fa-brands fa-google-drive text-emerald-600"></i> Konfigurasi Google Drive
+                </h3>
+                <button onclick="closeSetupModal()" class="text-slate-400 hover:text-red-500 transition-colors w-8 h-8 flex justify-center items-center rounded-lg hover:bg-red-50">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto text-sm text-slate-600 space-y-5">
+                
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r text-amber-900 shadow-sm">
+                    <h4 class="font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-laptop-medical text-amber-600"></i> Buka di Komputer / HP Lain?</h4>
+                    <p class="text-xs">Jika Anda membuka aplikasi ini di perangkat lain, setelan ini <b>tidak terbawa otomatis</b>. Anda <b class="underline">TIDAK PERLU</b> membuat Script baru. Cukup tempel (paste) URL yang sudah Anda salin sebelumnya langsung ke kotak Hijau di bawah ini lalu Simpan.</p>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">1. Buat Proyek & Salin Kode</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Buka web <a href="https://script.google.com/" target="_blank" class="text-blue-600 hover:underline font-semibold">script.google.com</a> (pastikan sudah login akun Google Drive puskesmas Anda), lalu klik <b>Proyek Baru</b>.</li>
+                        <li>Hapus seluruh kode bawaan yang ada di layar putih tersebut.</li>
+                        <li>Klik <b>Copy Code</b> di bawah ini, lalu tempel (<i>paste</i>) ke layar tersebut.</li>
+                    </ul>
+                </div>
+                
+                <div class="relative group mb-4">
+                    <button onclick="copyScriptCode()" class="absolute top-2 right-2 bg-slate-700 text-white text-xs px-3 py-1.5 rounded-md hover:bg-slate-600 transition opacity-0 group-hover:opacity-100 focus:opacity-100 shadow-md">
+                        <i class="fa-regular fa-copy"></i> Copy Code
+                    </button>
+                    <pre id="gasScriptCode" class="bg-slate-800 text-green-400 p-4 rounded-xl overflow-x-auto text-xs font-mono border border-slate-700">
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var fileData = data.fileBase64;
+    var fileName = data.fileName;
+    var mimeType = data.mimeType;
+    var folderPath = data.folderPath;
+
+    var decodedFile = Utilities.base64Decode(fileData.split(',')[1]);
+    var blob = Utilities.newBlob(decodedFile, mimeType, fileName);
+
+    var rootFolder = DriveApp.getRootFolder();
+    var folders = folderPath.split('/');
+    var currentFolder = rootFolder;
+    
+    for (var i = 0; i < folders.length; i++) {
+      if(folders[i] === "") continue;
+      var folderIterator = currentFolder.getFoldersByName(folders[i]);
+      if (folderIterator.hasNext()) {
+        currentFolder = folderIterator.next();
+      } else {
+        currentFolder = currentFolder.createFolder(folders[i]);
+      }
+    }
+
+    var file = currentFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      url: file.getUrl(),
+      fileName: file.getName()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput("")
+    .setHeaders({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    });
+}
+</pre>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">2. Terapkan (Deploy) Script</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Di sudut kanan atas, klik tombol biru <b>Terapkan (Deploy)</b> > pilih <b>Deployment baru</b>.</li>
+                        <li>Klik ikon Roda Gigi ⚙️ (Pilih jenis) > pilih <b>Aplikasi Web (Web App)</b>.</li>
+                        <li>Atur pengaturan berikut:
+                            <ul class="list-circle pl-5 mt-1 text-slate-500">
+                                <li>Jalankan sebagai: <b class="text-slate-700">Saya (Me)</b></li>
+                                <li>Siapa yang memiliki akses: <b class="text-slate-700">Siapa saja (Anyone)</b></li>
+                            </ul>
+                        </li>
+                        <li>Klik tombol <b>Terapkan</b>.</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">3. Otorisasi Izin Akses (Sangat Penting!)</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Google akan meminta izin untuk membuat folder. Klik <b>Otorisasi akses</b> dan pilih akun Anda.</li>
+                        <li>Jika muncul layar peringatan <i>"Google belum memverifikasi aplikasi ini"</i>, klik tulisan <b>Lanjutan (Advanced)</b> di bagian bawah.</li>
+                        <li>Scroll ke bawah dan klik tulisan <b>Buka proyek (tidak aman) / Go to project</b>.</li>
+                        <li>Klik tombol <b>Izinkan (Allow)</b>.</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-slate-800 border-b pb-1">4. Simpan URL Web App</h4>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Setelah berhasil, salin tulisan panjang di bawah <b>URL Aplikasi Web</b>.</li>
+                        <li>Tempelkan ke dalam kotak hijau di bawah ini dan klik Simpan.</li>
+                    </ul>
+                </div>
+
+                <div class="mt-5 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Tempel Web App URL Anda di sini:</label>
+                    <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full px-3 py-2 border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
+                    <button onclick="saveGasUrl()" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg hover:bg-emerald-700 transition shadow-md">Simpan URL & Hubungkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cek Nama Fasyankes dari sesi index.html
+        const currentUnitKerja = sessionStorage.getItem('unitKerja') || 'Puskesmas_Default';
+        const STORAGE_KEY_GAS = `SEHATI_GAS_URL_${currentUnitKerja.replace(/\s+/g, '_')}`;
+        
+        let GAS_WEB_APP_URL = localStorage.getItem(STORAGE_KEY_GAS) || ''; 
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const subtitle = document.getElementById('headerSubtitle');
+            if(sessionStorage.getItem('unitKerja')) {
+                subtitle.innerHTML = `Terintegrasi dengan Google Drive Akun <b>${currentUnitKerja}</b>`;
+            }
+        });
+
+        // Data Akreditasi Puskesmas 100% LENGKAP (Bab 1 - 5)
+        const rawData = {
+            "BAB1": {
+                title: "BAB I: KEPEMIMPINAN DAN MANAJEMEN PUSKESMAS (KMP)", icon: "🏛️", color: "sky",
+                standarList: [
+                    { id: "Standar 1.1", title: "Perencanaan dan kemudahan akses bagi pengguna layanan.", kriteriaList: [
+                        { id: "Kriteria 1.1.1", title: "Puskesmas menyediakan jenis pelayanan sesuai perencanaan yang didasarkan pada visi, misi, analisis kebutuhan, dan peraturan.", eps: [
+                            "a) Visi, misi, tujuan, dan tata nilai Puskesmas ditetapkan sebagai acuan. (R)",
+                            "b) Jenis pelayanan ditetapkan berdasarkan hasil identifikasi dan analisis yang berlaku. (R, D, W)",
+                            "c) Rencana lima tahunan disusun melibatkan lintas program dan sektor. (R, D, W)",
+                            "d) RUK disusun berdasarkan rencana lima tahunan, analisis kebutuhan, dan data kinerja. (R, D, W)",
+                            "e) RPK tahunan disusun sesuai alokasi anggaran yang ditetapkan. (R, D, W)",
+                            "f) RPK bulanan disusun sesuai RPK tahunan dan capaian kinerja. (R, D, W)",
+                            "g) Perencanaan direvisi jika ada perubahan kebijakan pemerintah. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 1.1.2", title: "Masyarakat mudah mengakses informasi, pelayanan, serta dapat menyampaikan umpan balik dan keluhan.", eps: [
+                            "a) Kebijakan hak dan kewajiban pasien ditetapkan. (R)",
+                            "b) Sosialisasi hak, kewajiban, dan jenis pelayanan dilakukan kepada pengguna dan petugas. (R, D, O, W)",
+                            "c) Kepatuhan petugas dalam pemenuhan hak dan kewajiban pasien dievaluasi. (D, O, W)",
+                            "d) Umpan balik, kepuasan, dan keluhan pengguna layanan dikelola dan ditindaklanjuti. (R, D, O, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 1.2", title: "Tata kelola organisasi.", kriteriaList: [
+                        { id: "Kriteria 1.2.1", title: "Struktur organisasi ditetapkan dengan kejelasan tugas, wewenang, tanggung jawab, dan persyaratan jabatan.", eps: [
+                            "a) Kepala Puskesmas menetapkan penanggung jawab dan koordinator pelayanan. (R)",
+                            "b) Kode etik perilaku ditetapkan, dievaluasi, dan ditindaklanjuti. (R, D, W)",
+                            "c) Kebijakan dan prosedur pendelegasian wewenang manajerial ditetapkan dengan jelas. (R, D)"
+                        ]},
+                        { id: "Kriteria 1.2.2", title: "Dokumen (kebijakan, pedoman, prosedur) disusun, didokumentasikan, dan dikendalikan sesuai aturan.", eps: [
+                            "a) Pedoman tata naskah Puskesmas ditetapkan. (R)",
+                            "b) Kebijakan, pedoman, prosedur, dan kerangka acuan untuk KMP, UKM, dan UKP ditetapkan. (R, W)",
+                            "c) Pengendalian, penataan, dan distribusi dokumen dilakukan sesuai prosedur. (R, D, O, W)"
+                        ]},
+                        { id: "Kriteria 1.2.3", title: "Jaringan pelayanan dan jejaring Puskesmas dikelola dan dioptimalkan.", eps: [
+                            "a) Indikator kinerja pembinaan jaringan dan jejaring ditetapkan. (R)",
+                            "b) Identifikasi jaringan dan jejaring di wilayah kerja dilakukan. (D)",
+                            "c) Program pembinaan disusun dan dilaksanakan dengan jadwal yang jelas. (R, D, W)",
+                            "d) Pencapaian indikator kinerja pembinaan dievaluasi dan ditindaklanjuti. (D)"
+                        ]},
+                        { id: "Kriteria 1.2.4", title: "Ketersediaan data dan informasi dijamin melalui sistem informasi Puskesmas.", eps: [
+                            "a) Pengumpulan, penyimpanan, analisis, pelaporan, dan distribusi informasi dilaksanakan sesuai aturan. (R, D, W)",
+                            "b) Penyelenggaraan sistem informasi dievaluasi secara periodik. (D, W)",
+                            "c) Informasi pencapaian kinerja Puskesmas tersedia melalui sistem informasi. (D, O)"
+                        ]},
+                        { id: "Kriteria 1.2.5", title: "Pelayanan UKM dan UKP mempertimbangkan etik dalam pengambilan keputusan.", eps: [
+                            "a) Prosedur pelaporan dan penyelesaian dilema etik dalam pelayanan UKP dan UKM ada. (R)",
+                            "b) Pelaporan dilema etik dalam pelayanan UKP dan UKM dilaksanakan. (D, W)",
+                            "c) Ada bukti dukungan pimpinan dalam penyelesaian dilema etik. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 1.3", title: "Manajemen sumber daya manusia.", kriteriaList: [
+                        { id: "Kriteria 1.3.1", title: "Jenis, jumlah, dan kompetensi SDM tersedia sesuai kebutuhan dan peraturan.", eps: [
+                            "a) Analisis jabatan dan analisis beban kerja dilakukan. (D, W)",
+                            "b) Peta jabatan, uraian jabatan, dan kebutuhan tenaga disusun. (D, W)",
+                            "c) Upaya pemenuhan kebutuhan tenaga dilakukan. (D, W)",
+                            "d) Pengusulan kredensial/rekredensial tenaga kesehatan dilakukan dan ditindaklanjuti. (D, W)"
+                        ]},
+                        { id: "Kriteria 1.3.2", title: "Setiap pegawai memiliki uraian tugas sebagai dasar pelaksanaan dan penilaian kinerja.", eps: [
+                            "a) Uraian tugas pokok dan tambahan ditetapkan untuk setiap pegawai. (R)",
+                            "b) Indikator penilaian kinerja pegawai ditetapkan. (R)",
+                            "c) Penilaian kinerja pegawai minimal setahun sekali dilakukan dan ditindaklanjuti. (R, D, W)",
+                            "d) Indikator dan mekanisme survei kepuasan pegawai ditetapkan. (R)",
+                            "e) Pengumpulan data, analisis, dan upaya perbaikan untuk kepuasan pegawai dilakukan. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 1.3.3", title: "Setiap pegawai mendapat kesempatan mengembangkan ilmu dan keterampilan.", eps: [
+                            "a) Informasi mengenai peluang peningkatan kompetensi tersedia. (D)",
+                            "b) Ada dukungan manajemen untuk memanfaatkan peluang peningkatan kompetensi. (R, W)",
+                            "c) Penerapan hasil peningkatan kompetensi dievaluasi. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 1.3.4", title: "Setiap pegawai mempunyai dokumen kepegawaian yang lengkap dan mutakhir.", eps: [
+                            "a) Isi dokumen kepegawaian ditetapkan, lengkap, mutakhir, dan terpelihara. (R, D, O, W)",
+                            "b) Evaluasi dan tindak lanjut kelengkapan dokumen kepegawaian dilakukan secara periodik. (D, W)"
+                        ]},
+                        { id: "Kriteria 1.3.5", title: "Pegawai baru dan alih tugas wajib mengikuti orientasi.", eps: [
+                            "a) Orientasi pegawai dilaksanakan sesuai kerangka acuan. (R, D, W)",
+                            "b) Pelaksanaan orientasi pegawai dievaluasi dan ditindaklanjuti. (D, W)"
+                        ]},
+                        { id: "Kriteria 1.3.6", title: "Puskesmas menyelenggarakan pelayanan Keselamatan dan Kesehatan Kerja (K3).", eps: [
+                            "a) Petugas penanggung jawab dan program K3 ditetapkan dan dievaluasi. (R, D, W)",
+                            "b) Pemeriksaan kesehatan berkala terhadap pegawai dilakukan. (R, D, W)",
+                            "c) Program dan pelaksanaan imunisasi bagi pegawai tersedia sesuai tingkat risiko. (R, D, W)",
+                            "d) Konseling dan tindak lanjut diberikan jika pegawai terpapar penyakit infeksi, kekerasan, atau cedera kerja. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 1.4", title: "Manajemen fasilitas dan keselamatan (MFK).", kriteriaList: [
+                        { id: "Kriteria 1.4.1", title: "Program MFK disusun dan diterapkan.", eps: [
+                            "a) Ada petugas bertanggung jawab dan program MFK yang ditetapkan tahunan. (R)",
+                            "b) Akses mudah dan aman bagi pengguna layanan dengan keterbatasan fisik disediakan. (O, W)",
+                            "c) Identifikasi area berisiko dilakukan. (D, W)",
+                            "d) Daftar risiko (risk register) yang mencakup seluruh program MFK disusun. (D)",
+                            "e) Evaluasi dan tindak lanjut program MFK dilakukan per triwulan. (D)"
+                        ]},
+                        { id: "Kriteria 1.4.2", title: "Manajemen keselamatan dan keamanan fasilitas direncanakan dan dilaksanakan.", eps: [
+                            "a) Identifikasi pengunjung, petugas, dan pekerja alih daya dilakukan. (R, O, W)",
+                            "b) Inspeksi fasilitas (bangunan, prasarana, peralatan) dilakukan secara berkala. (R, D, O, W)",
+                            "c) Simulasi kode darurat dilakukan secara berkala. (D, O, W, S)",
+                            "d) Pemantauan pekerjaan konstruksi terkait keamanan dan pencegahan infeksi dilakukan. (D, O, W)"
+                        ]},
+                        { id: "Kriteria 1.4.3", title: "Pengelolaan B3 dan limbah B3 dilakukan sesuai perencanaan dan peraturan.", eps: [
+                            "a) Inventarisasi B3 dan limbah B3 dilakukan. (D)",
+                            "b) Manajemen B3 dan limbah B3 dilaksanakan. (R, D, O, W)",
+                            "c) IPAL tersedia sesuai peraturan. (D, O, W)",
+                            "d) Penanganan awal, pelaporan, analisis, dan tindak lanjut dilakukan jika terjadi tumpahan/paparan B3. (D, O, W)"
+                        ]},
+                        { id: "Kriteria 1.4.4", title: "Manajemen kedaruratan dan bencana disusun, dipelihara, dan dievaluasi.", eps: [
+                            "a) Identifikasi risiko bencana internal dan eksternal dilakukan. (D)",
+                            "b) Manajemen kedaruratan dan bencana dilaksanakan. (D, W)",
+                            "c) Simulasi dan evaluasi tahunan dilakukan, dilanjutkan dengan debriefing. (D, W)",
+                            "d) Perbaikan manajemen kedaruratan dilakukan sesuai hasil simulasi. (D)"
+                        ]},
+                        { id: "Kriteria 1.4.5", title: "Manajemen pengamanan kebakaran disusun, dipelihara, dan dievaluasi.", eps: [
+                            "a) Manajemen pengamanan kebakaran dilakukan. (D, O, W)",
+                            "b) Inspeksi, pengujian, dan pemeliharaan alat proteksi kebakaran dilakukan. (D, O)",
+                            "c) Simulasi dan evaluasi tahunan manajemen pengamanan kebakaran dilakukan. (D, W, S)",
+                            "d) Kebijakan larangan merokok ditetapkan di area Puskesmas. (R, O, W)"
+                        ]},
+                        { id: "Kriteria 1.4.6", title: "Pengelolaan program alat kesehatan (alkes) dilaksanakan untuk memastikan fungsi dan ketersediaannya.", eps: [
+                            "a) Inventarisasi alkes sesuai dengan ASPAK dilakukan. (D)",
+                            "b) Pemenuhan kompetensi staf dalam mengoperasikan alkes tertentu dilakukan. (D, W)",
+                            "c) Pemeliharaan dan kalibrasi alkes dilakukan secara periodik. (R, D, O, W)"
+                        ]},
+                        { id: "Kriteria 1.4.7", title: "Pengelolaan sistem utilitas dilaksanakan untuk memastikan fungsinya.", eps: [
+                            "a) Inventarisasi sistem utilitas sesuai dengan ASPAK dilakukan. (D)",
+                            "b) Manajemen sistem utilitas dan sistem penunjang lainnya dilaksanakan. (R, D)",
+                            "c) Sumber air, listrik, gas medik, dan cadangannya tersedia 24/7. (O)"
+                        ]},
+                        { id: "Kriteria 1.4.8", title: "Pendidikan manajemen fasilitas dan keselamatan (MFK) bagi petugas disusun dan dilaksanakan.", eps: [
+                            "a) Rencana pendidikan MFK bagi petugas ada. (R)",
+                            "b) Pemenuhan pendidikan MFK bagi petugas dilaksanakan sesuai rencana. (D, W)",
+                            "c) Evaluasi dan tindak lanjut perbaikan pelaksanaan pendidikan MFK dilakukan. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 1.5", title: "Manajemen keuangan.", kriteriaList: [
+                        { id: "Kriteria 1.5.1", title: "Manajemen keuangan dilaksanakan sesuai peraturan perundang-undangan.", eps: [
+                            "a) Kebijakan, prosedur, dan petugas pengelola keuangan ditetapkan. (R)",
+                            "b) Pengelolaan keuangan dilaksanakan sesuai kebijakan dan prosedur. (D, O, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 1.6", title: "Pengawasan, pengendalian, dan penilaian kinerja.", kriteriaList: [
+                        { id: "Kriteria 1.6.1", title: "Pengawasan, pengendalian, dan penilaian kinerja dilakukan menggunakan indikator yang jelas.", eps: [
+                            "a) Indikator kinerja Puskesmas ditetapkan sesuai jenis layanan dan kebijakan. (R)",
+                            "b) Pengawasan, pengendalian, dan penilaian kinerja dilakukan secara periodik. (R, D, W)",
+                            "c) Hasil penilaian dievaluasi dan ditindaklanjuti terhadap target dan hasil kaji banding. (D, W)",
+                            "d) Hasil analisis digunakan untuk perencanaan kegiatan. (D, W)",
+                            "e) Hasil pengawasan digunakan untuk perbaikan kinerja dan revisi RPK. (D, W)",
+                            "f) Laporan PKP dan upaya perbaikan dilaporkan ke dinas kesehatan. (D)"
+                        ]},
+                        { id: "Kriteria 1.6.2", title: "Lokakarya mini lintas program dan lintas sektor dilaksanakan sesuai prosedur.", eps: [
+                            "a) Lokakarya mini bulanan dan triwulanan dilakukan secara konsisten dan periodik. (D, W)",
+                            "b) Permasalahan, hambatan, dan rekomendasi dibahas dalam lokakarya mini. (D, W)",
+                            "c) Rekomendasi lokakarya mini ditindaklanjuti dalam bentuk perbaikan. (D, W)"
+                        ]},
+                        { id: "Kriteria 1.6.3", title: "Pengawasan dan perbaikan kinerja dilakukan melalui audit internal dan pertemuan tinjauan manajemen (PTM).", eps: [
+                            "a) Tim audit internal dibentuk dengan uraian tugas yang jelas. (R)",
+                            "b) Rencana program audit internal tahunan disusun dan dilaksanakan. (R, D, W)",
+                            "c) Laporan dan umpan balik hasil audit internal disampaikan. (D, W)",
+                            "d) Temuan dan rekomendasi audit internal ditindaklanjuti. (D, W)",
+                            "e) PTM direncanakan dan dilakukan dengan agenda yang jelas. (D, W)",
+                            "f) Rekomendasi hasil PTM ditindaklanjuti dan dievaluasi. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 1.7", title: "Pembinaan Puskesmas oleh dinas kesehatan.", kriteriaList: [
+                        { id: "Kriteria 1.7.1", title: "Puskesmas mendapat pembinaan dan pengawasan terpadu dari dinas kesehatan.", eps: [
+                            "a) Organisasi Puskesmas ditetapkan sesuai peraturan. (R)",
+                            "b) Dinkes menetapkan kebijakan dan jadwal pembinaan terpadu. (R, D, W)",
+                            "c) Ada bukti Dinkes melalui TPCB melaksanakan pembinaan periodik. (D, W)",
+                            "d) TPCB menyampaikan hasil pembinaan dan umpan balik. (D, W)",
+                            "e) TPCB mendampingi penyusunan RUK dan RPK Puskesmas. (R, D, W)",
+                            "f) TPCB menindaklanjuti hasil lokakarya mini dan PTM. (D, W)",
+                            "g) TPCB melakukan verifikasi dan memberikan umpan balik hasil pemantauan. (D, W)",
+                            "h) Puskesmas menindaklanjuti umpan balik hasil pembinaan. (D, W)"
+                        ]}
+                    ]}
+                ]
+            },
+            "BAB2": {
+                title: "BAB II: PENYELENGGARAAN UPAYA KESEHATAN MASYARAKAT (UKM)", icon: "👥", color: "emerald",
+                standarList: [
+                    { id: "Standar 2.1", title: "Perencanaan terpadu pelayanan UKM.", kriteriaList: [
+                        { id: "Kriteria 2.1.1", title: "Perencanaan pelayanan UKM disusun terpadu berbasis wilayah kerja dengan melibatkan lintas program dan sektor.", eps: [
+                            "a) Identifikasi kebutuhan dan harapan sasaran UKM dilakukan sesuai prosedur. (R, D, W)",
+                            "b) Hasil identifikasi dianalisis bersama lintas program dan sektor. (D, W)",
+                            "c) Data capaian kinerja UKM dianalisis bersama lintas program dan sektor. (R, D, W)",
+                            "d) RUK UKM disusun terpadu berbasis wilayah kerja. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.1.2", title: "Perencanaan UKM memuat kegiatan pemberdayaan masyarakat.", eps: [
+                            "a) Kegiatan fasilitasi pemberdayaan masyarakat dituangkan dalam RUK dan RPK. (R, D, W)",
+                            "b) Ada bukti keterlibatan masyarakat dalam perencanaan, pelaksanaan, dan evaluasi pemberdayaan. (D, W)",
+                            "c) Kegiatan pemberdayaan masyarakat dievaluasi dan ditindaklanjuti. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.1.3", title: "RPK Pelayanan UKM terintegrasi dan mengacu pada RUK.", eps: [
+                            "a) RPK tahunan UKM tersedia dan terintegrasi dalam RPK tahunan Puskesmas. (R)",
+                            "b) RPK bulanan (RPKB) untuk masing-masing pelayanan UKM tersedia. (R)",
+                            "c) Kerangka acuan kegiatan (KAK) untuk tiap kegiatan UKM tersedia. (R)",
+                            "d) RPK disesuaikan jika terjadi perubahan rencana. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.2", title: "Kemudahan akses sasaran dan masyarakat terhadap pelayanan UKM.", kriteriaList: [
+                        { id: "Kriteria 2.2.1", title: "Penjadwalan pelaksanaan pelayanan UKM disepakati bersama dan diinformasikan.", eps: [
+                            "a) Jadwal dan informasi pelaksanaan kegiatan UKM disusun berdasarkan kesepakatan. (D, W)",
+                            "b) Jadwal pelaksanaan diinformasikan kepada sasaran dan pihak terkait. (D, W)",
+                            "c) Ada bukti penyampaian informasi jika ada perubahan jadwal. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.2.2", title: "Akses untuk menyampaikan umpan balik dan keluhan dipastikan tersedia.", eps: [
+                            "a) Identifikasi umpan balik dari masyarakat, kelompok masyarakat, dan sasaran dilakukan. (D, W)",
+                            "b) Hasil identifikasi umpan balik dianalisis untuk menyusun rencana tindak lanjut. (D, W)",
+                            "c) Umpan balik dan keluhan ditindaklanjuti dan dievaluasi. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.3", title: "Penggerakan dan pelaksanaan pelayanan UKM.", kriteriaList: [
+                        { id: "Kriteria 2.3.1", title: "Komunikasi dan koordinasi dilakukan dalam penyelenggaraan pelayanan UKM.", eps: [
+                            "a) Mekanisme komunikasi dan koordinasi untuk pelayanan UKM ditetapkan. (R)",
+                            "b) Komunikasi dan koordinasi kegiatan pelayanan UKM dilakukan sesuai kebijakan. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.4", title: "Pembinaan berjenjang pelayanan UKM.", kriteriaList: [
+                        { id: "Kriteria 2.4.1", title: "Penanggung jawab UKM, koordinator, dan pelaksana bertanggung jawab terhadap pencapaian kinerja.", eps: [
+                            "a) PJ UKM melakukan pembinaan kepada koordinator dan pelaksana secara periodik. (D, W)",
+                            "b) PJ UKM, koordinator, dan pelaksana mengidentifikasi, menganalisis masalah, dan menyusun rencana tindak lanjut. (D, W)",
+                            "c) Tindak lanjut untuk mengatasi masalah dan hambatan dilaksanakan. (D, W)",
+                            "d) Evaluasi dan tindak lanjut atas pelaksanaan penyelesaian masalah dilakukan. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.5", title: "Penguatan pelayanan UKM dengan PIS PK.", kriteriaList: [
+                        { id: "Kriteria 2.5.1", title: "Tim Pembina Keluarga melaksanakan pemetaan dan intervensi kesehatan berdasarkan permasalahan keluarga.", eps: [
+                            "a) Tim Pembina Keluarga dan tim pengelola data PIS-PK dibentuk dengan uraian tugas yang jelas. (R)",
+                            "b) Tim melakukan kunjungan keluarga, intervensi awal, dan mendokumentasikannya. (D, W)",
+                            "c) Tim melakukan penghitungan IKS pada tingkat keluarga hingga Puskesmas. (D)",
+                            "d) Tim menyampaikan informasi masalah kesehatan untuk analisis bersama. (D, W)",
+                            "e) Tim menyusun intervensi lanjut berdasarkan masalah kesehatan keluarga. (D, W)",
+                            "f) PJ UKM mengoordinasikan pelaksanaan intervensi lanjut. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.5.2", title: "Intervensi lanjut dilaksanakan terintegrasi dengan pelayanan UKM Puskesmas.", eps: [
+                            "a) Tim melakukan analisis IKS awal dan pemetaan masalah sebagai dasar rencana intervensi lanjut. (D, W)",
+                            "b) Rencana intervensi lanjut dikomunikasikan dalam lokakarya mini. (D, W)",
+                            "c) Intervensi lanjut dilaksanakan sesuai rencana. (D, W)",
+                            "d) PJ UKM berkoordinasi dengan unit lain untuk perbaikan pelaksanaan intervensi. (D, W)",
+                            "e) Evaluasi dan tindak lanjut perbaikan dilakukan pada setiap tahapan PIS-PK. (D, W)",
+                            "f) Pelaksana UKM melaksanakan intervensi lanjut dan melaporkan hasilnya untuk pemutakhiran data. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.5.3", title: "Pelaksanaan Gerakan Masyarakat Hidup Sehat (Germas) sebagai bagian dari intervensi lanjut.", eps: [
+                            "a) Sasaran Germas dalam pelaksanaan UKM ditetapkan oleh Kepala Puskesmas. (R)",
+                            "b) Perencanaan pembinaan Germas disusun secara terintegrasi dalam kegiatan UKM. (D, W)",
+                            "c) Pelaksanaan pembinaan Germas melibatkan lintas program dan sektor. (D, W)",
+                            "d) Pemberdayaan masyarakat, keluarga, dan individu dalam Germas dilakukan. (D, W)",
+                            "e) Evaluasi dan tindak lanjut pembinaan Germas dilakukan. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.6", title: "Penyelenggaraan UKM esensial.", kriteriaList: [
+                        { id: "Kriteria 2.6.1", title: "Penyelenggaraan UKM Esensial: Promosi Kesehatan.", eps: [
+                            "a) Tercapainya indikator kinerja pelayanan UKM Esensial disertai analisisnya. (R, D)",
+                            "b) Upaya promotif dan preventif dilaksanakan untuk mencapai kinerja. (R, D, W)",
+                            "c) Pemantauan periodik terhadap capaian indikator dan upaya dilakukan. (D, W)",
+                            "d) Rencana tindak lanjut disusun dan dilaksanakan berdasarkan hasil pemantauan. (D, W)",
+                            "e) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 2.6.2", title: "Penyelenggaraan UKM Esensial: Penyehatan Lingkungan.", eps: [
+                            "a) Tercapainya indikator kinerja pelayanan UKM Esensial disertai analisisnya. (R, D)",
+                            "b) Upaya promotif dan preventif dilaksanakan untuk mencapai kinerja. (R, D, W)",
+                            "c) Pemantauan periodik terhadap capaian indikator dan upaya dilakukan. (D, W)",
+                            "d) Rencana tindak lanjut disusun dan dilaksanakan berdasarkan hasil pemantauan. (D, W)",
+                            "e) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 2.6.3", title: "Penyelenggaraan UKM Esensial: Kesehatan Keluarga.", eps: [
+                            "a) Tercapainya indikator kinerja pelayanan UKM Esensial disertai analisisnya. (R, D)",
+                            "b) Upaya promotif dan preventif dilaksanakan untuk mencapai kinerja. (R, D, W)",
+                            "c) Pemantauan periodik terhadap capaian indikator dan upaya dilakukan. (D, W)",
+                            "d) Rencana tindak lanjut disusun dan dilaksanakan berdasarkan hasil pemantauan. (D, W)",
+                            "e) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 2.6.4", title: "Penyelenggaraan UKM Esensial: Gizi.", eps: [
+                            "a) Tercapainya indikator kinerja pelayanan UKM Esensial disertai analisisnya. (R, D)",
+                            "b) Upaya promotif dan preventif dilaksanakan untuk mencapai kinerja. (R, D, W)",
+                            "c) Pemantauan periodik terhadap capaian indikator dan upaya dilakukan. (D, W)",
+                            "d) Rencana tindak lanjut disusun dan dilaksanakan berdasarkan hasil pemantauan. (D, W)",
+                            "e) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]},
+                        { id: "Kriteria 2.6.5", title: "Penyelenggaraan UKM Esensial: Pencegahan dan Pengendalian Penyakit.", eps: [
+                            "a) Tercapainya indikator kinerja pelayanan UKM Esensial disertai analisisnya. (R, D)",
+                            "b) Upaya promotif dan preventif dilaksanakan untuk mencapai kinerja. (R, D, W)",
+                            "c) Pemantauan periodik terhadap capaian indikator dan upaya dilakukan. (D, W)",
+                            "d) Rencana tindak lanjut disusun dan dilaksanakan berdasarkan hasil pemantauan. (D, W)",
+                            "e) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.7", title: "Penyelenggaraan UKM pengembangan.", kriteriaList: [
+                        { id: "Kriteria 2.7.1", title: "Penyelenggaraan UKM Pengembangan dilakukan untuk mencapai tujuan pembangunan kesehatan.", eps: [
+                            "a) Jenis pelayanan UKM Pengembangan ditetapkan sesuai hasil analisis. (R, D)",
+                            "b) Tercapainya indikator kinerja UKM Pengembangan disertai analisisnya. (R, D)",
+                            "c) Upaya promotif dan preventif dilaksanakan untuk mencapai kinerja. (R, D, W)",
+                            "d) Pemantauan periodik terhadap capaian indikator dan upaya dilakukan. (D, O, W)",
+                            "e) Rencana tindak lanjut disusun berdasarkan hasil pemantauan. (D, W)",
+                            "f) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 2.8", title: "Pengawasan, pengendalian, dan penilaian kinerja pelayanan UKM.", kriteriaList: [
+                        { id: "Kriteria 2.8.1", title: "Kepala Puskesmas dan PJ UKM melakukan supervisi pelaksanaan pelayanan UKM.", eps: [
+                            "a) Kerangka acuan dan jadwal supervisi disusun oleh PJ UKM. (R, D)",
+                            "b) KAK dan jadwal supervisi diinformasikan kepada koordinator dan pelaksana. (D, W)",
+                            "c) Koordinator dan pelaksana melakukan analisis mandiri sebelum supervisi. (D, W)",
+                            "d) Kepala Puskesmas dan PJ UKM melakukan supervisi sesuai KAK. (D, W)",
+                            "e) Hasil supervisi disampaikan kepada koordinator dan pelaksana. (D, W)",
+                            "f) Hasil supervisi ditindaklanjuti dengan tindakan perbaikan. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.8.2", title: "PJ UKM melakukan pemantauan pelaksanaan kegiatan UKM.", eps: [
+                            "a) Pemantauan kesesuaian pelaksanaan kegiatan terhadap KAK dan jadwal dilakukan. (D, W)",
+                            "b) Hasil pemantauan dibahas dalam lokakarya mini bulanan dan triwulanan. (D, W)",
+                            "c) Tindak lanjut perbaikan berdasarkan hasil pemantauan dilakukan. (D, W)",
+                            "d) Penyesuaian rencana kegiatan dilakukan berdasarkan hasil perbaikan. (D, W)",
+                            "e) Penyesuaian rencana diinformasikan kepada pihak terkait. (D, W)"
+                        ]},
+                        { id: "Kriteria 2.8.3", title: "Upaya perbaikan dilakukan terhadap hasil penilaian capaian kinerja pelayanan UKM.", eps: [
+                            "a) Indikator kinerja pelayanan UKM ditetapkan. (R)",
+                            "b) Pengumpulan data capaian indikator dilakukan secara periodik. (R, D, W)",
+                            "c) Pembahasan capaian kinerja dilakukan bersama lintas program. (D, W)",
+                            "d) Rencana tindak lanjut disusun dan dilaksanakan. (D, W)",
+                            "e) Data capaian kinerja dilaporkan ke dinas kesehatan. (D)",
+                            "f) Ada bukti umpan balik (feedback) dari dinas kesehatan. (D)",
+                            "g) Umpan balik dari dinas kesehatan ditindaklanjuti. (D)"
+                        ]},
+                        { id: "Kriteria 2.8.4", title: "Penilaian kinerja penyelenggaraan pelayanan UKM dilaksanakan secara periodik.", eps: [
+                            "a) Pembahasan penilaian kinerja dilakukan minimal dua kali setahun. (R, D, W)",
+                            "b) Rencana tindak lanjut disusun terhadap hasil pembahasan. (D, W)",
+                            "c) Hasil penilaian kinerja dilaporkan ke dinas kesehatan. (D)",
+                            "d) Ada bukti umpan balik (feedback) dari dinas kesehatan. (D)",
+                            "e) Hasil umpan balik (feedback) ditindaklanjuti. (D)"
+                        ]}
+                    ]}
+                ]
+            },
+            "BAB3": {
+                title: "BAB III: PENYELENGGARAAN UKP, LABORATORIUM, DAN KEFARMASIAN", icon: "🩺", color: "rose",
+                standarList: [
+                    { id: "Standar 3.1", title: "Penyelenggaraan pelayanan klinis.", kriteriaList: [
+                        { id: "Kriteria 3.1.1", title: "Penyelenggaraan pelayanan klinis dilaksanakan secara efektif dan efisien.", eps: [
+                            "a) Kebijakan dan prosedur identifikasi dan pemenuhan kebutuhan pasien dengan risiko/kendala khusus tersedia. (R)",
+                            "b) Pendaftaran dilakukan sesuai kebijakan dengan memperhatikan keselamatan pasien. (R, O, W, S)",
+                            "c) Informasi tentang tarif, jenis pelayanan, alur, dan ketersediaan tempat tidur jelas dan mudah diakses. (O, W)",
+                            "d) Persetujuan umum (general consent) diminta saat pertama kali rawat jalan dan setiap kali rawat inap. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.2", title: "Pengkajian, rencana asuhan, dan pemberian asuhan.", kriteriaList: [
+                        { id: "Kriteria 3.2.1", title: "Skrining dan kajian awal dilakukan secara paripurna.", eps: [
+                            "a) Skrining dan pengkajian awal paripurna dilakukan oleh tenaga kompeten dan dicatat di rekam medis. (R, D, O, W)",
+                            "b) Pelimpahan wewenang tertulis dapat dilakukan jika tidak tersedia tenaga medis. (R, D)",
+                            "c) Rencana asuhan dibuat, dilaksanakan, dipantau, dan direvisi sesuai kebutuhan pasien. (D, W)",
+                            "d) Asuhan pasien dilakukan secara kolaboratif sesuai rencana dan panduan praktik klinis. (D, W)",
+                            "e) Penyuluhan/pendidikan kesehatan bagi pasien dan keluarga dilakukan. (D, O)",
+                            "f) Pasien/keluarga mendapat informasi untuk informed consent pada tindakan berisiko. (D)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.3", title: "Pelayanan gawat darurat.", kriteriaList: [
+                        { id: "Kriteria 3.3.1", title: "Penanganan pasien gawat darurat disusun berdasarkan panduan praktik klinis.", eps: [
+                            "a) Pasien diprioritaskan berdasarkan kegawatdaruratan (triase) sesuai kebijakan. (R, D, O, W, S)",
+                            "b) Pasien gawat darurat yang akan dirujuk, distabilisasi terlebih dahulu. (R, D, O)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.4", title: "Pelayanan anestesi lokal dan tindakan.", kriteriaList: [
+                        { id: "Kriteria 3.4.1", title: "Pelayanan anestesi lokal dilaksanakan sesuai standar.", eps: [
+                            "a) Anestesi lokal dilakukan oleh tenaga kesehatan yang kompeten. (R, D, O, W)",
+                            "b) Jenis, dosis, teknik anestesi, dan pemantauan pasien dicatat dalam rekam medis. (D)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.5", title: "Pelayanan gizi.", kriteriaList: [
+                        { id: "Kriteria 3.5.1", title: "Pelayanan Gizi dilakukan sesuai status gizi pasien dan konsisten dengan asuhan klinis.", eps: [
+                            "a) Rencana asuhan gizi disusun berdasar kajian kebutuhan gizi pasien. (R, D, W)",
+                            "b) Makanan disiapkan dan disimpan dengan cara baku untuk mengurangi risiko kontaminasi. (R, D, O, W)",
+                            "c) Distribusi dan pemberian makanan dilakukan sesuai jadwal dan didokumentasikan. (R, D, O, W)",
+                            "d) Pasien/keluarga diberi edukasi tentang diet dan keamanan makanan. (D)",
+                            "e) Proses kolaboratif digunakan dalam merencanakan, memberikan, dan memantau pelayanan gizi. (D, W)",
+                            "f) Respons pasien terhadap pelayanan gizi dipantau dan dicatat dalam rekam medis. (D)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.6", title: "Pemulangan dan tindak lanjut pasien.", kriteriaList: [
+                        { id: "Kriteria 3.6.1", title: "Pemulangan dan tindak lanjut pasien dipandu oleh prosedur baku.", eps: [
+                            "a) Pemulangan, rujukan, dan asuhan tindak lanjut dilaksanakan sesuai rencana dan kriteria. (R, D)",
+                            "b) Resume medis diberikan kepada pasien dan pihak berkepentingan saat pemulangan atau rujukan. (D, O, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.7", title: "Pelayanan Rujukan.", kriteriaList: [
+                        { id: "Kriteria 3.7.1", title: "Pelaksanaan rujukan dilakukan sesuai kebijakan, prosedur, dan peraturan.", eps: [
+                            "a) Pasien/keluarga mendapat informasi dan memberikan persetujuan rujukan. (D, W)",
+                            "b) Komunikasi dengan faskes tujuan dilakukan dan pasien distabilisasi sebelum dirujuk. (D, W)",
+                            "c) Serah terima pasien menggunakan metode SBAR dilakukan. (D, W)"
+                        ]},
+                        { id: "Kriteria 3.7.2", title: "Dilakukan tindak lanjut terhadap rujukan balik dari FKRTL.", eps: [
+                            "a) Dokter/dokter gigi melakukan kajian ulang kondisi medis sebelum menindaklanjuti umpan balik rujukan. (R, D, O)",
+                            "b) Dokter/dokter gigi melakukan tindak lanjut terhadap rekomendasi umpan balik rujukan. (D, O, W)",
+                            "c) Pemantauan proses rujukan balik dicatat dalam formulir pemantauan. (D)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.8", title: "Penyelenggaraan rekam medis.", kriteriaList: [
+                        { id: "Kriteria 3.8.1", title: "Tata kelola penyelenggaraan rekam medis dilakukan sesuai peraturan.", eps: [
+                            "a) Penyelenggaraan rekam medis (dari registrasi hingga pemusnahan) dilakukan sesuai kebijakan. (R, D, O, W)",
+                            "b) RM diisi lengkap, terbaca, dengan nama, waktu, dan tanda tangan PPA. Koreksi kesalahan dilakukan sesuai aturan. (D, O, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.9", title: "Penyelenggaraan pelayanan laboratorium.", kriteriaList: [
+                        { id: "Kriteria 3.9.1", title: "Pelayanan laboratorium dikelola sesuai kebijakan dan prosedur.", eps: [
+                            "a) Kepala Puskesmas menetapkan nilai normal, rentang nilai rujukan, dan nilai kritis lab. (R)",
+                            "b) Reagensia esensial dan bahan lain tersedia, dilabeli, dan disimpan dengan benar. (R, D, W)",
+                            "c) Penyelenggaraan pelayanan lab (dari permintaan s.d. pengelolaan reagen) dilaksanakan sesuai kebijakan. (R, D, O, W)",
+                            "d) PMI dan PME dilakukan dan ada perbaikan jika terjadi penyimpangan. (R, D, O, W)",
+                            "e) Waktu pelaporan hasil lab dievaluasi dan ditindaklanjuti. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 3.10", title: "Penyelenggaraan pelayanan kefarmasian.", kriteriaList: [
+                        { id: "Kriteria 3.10.1", title: "Pelayanan kefarmasian dikelola sesuai kebijakan dan prosedur.", eps: [
+                            "a) Daftar formularium obat puskesmas tersedia. (D)",
+                            "b) Pengelolaan sediaan farmasi dan BMHP dilakukan oleh tenaga kefarmasian. (R, D, O, W)",
+                            "c) Rekonsiliasi obat dan pelayanan farmasi klinik dilakukan oleh tenaga kefarmasian. (R, D, O, W)",
+                            "d) Kajian resep dan pemberian obat dengan benar dilakukan pada setiap pelayanan. (R, D, O, W)",
+                            "e) Edukasi tentang indikasi dan cara penggunaan obat dilakukan kepada setiap pasien. (R, D, O, W)",
+                            "f) Obat gawat darurat tersedia, dapat diakses, dipantau, dan diganti tepat waktu. (R, D, O, W)",
+                            "g) Evaluasi dan tindak lanjut ketersediaan obat dan kesesuaian peresepan dengan formularium dilakukan. (D, W)"
+                        ]}
+                    ]}
+                ]
+            },
+            "BAB4": {
+                title: "BAB IV: PROGRAM PRIORITAS NASIONAL (PPN)", icon: "⭐", color: "amber",
+                standarList: [
+                    { id: "Standar 4.1", title: "Pencegahan dan penurunan stunting.", kriteriaList: [
+                        { id: "Kriteria 4.1.1", title: "Program pencegahan dan penurunan stunting direncanakan, dilaksanakan, dipantau, dan dievaluasi.", eps: [
+                            "a) Indikator dan target kinerja stunting ditetapkan, disertai capaian dan analisisnya. (R, D, W)",
+                            "b) Program pencegahan dan penurunan stunting ditetapkan. (R, W)",
+                            "c) Kegiatan intervensi gizi spesifik dan sensitif dikoordinasikan dan dilaksanakan. (R, D, W)",
+                            "d) Pemantauan, evaluasi, dan tindak lanjut program dilakukan. (D, W)",
+                            "e) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 4.2", title: "Penurunan jumlah kematian ibu dan jumlah kematian bayi.", kriteriaList: [
+                        { id: "Kriteria 4.2.1", title: "Puskesmas melaksanakan pelayanan kesehatan ibu hamil, bersalin, nifas, dan bayi baru lahir.", eps: [
+                            "a) Indikator dan target kinerja AKI-AKB ditetapkan, disertai capaian dan analisisnya. (R, D, W)",
+                            "b) Program penurunan AKI-AKB ditetapkan. (R, W)",
+                            "c) Alat, obat, dan prasarana pendukung pelayanan KIA tersedia. (R, D, O, W)",
+                            "d) Pelayanan pada masa hamil, bersalin, nifas, dan bayi baru lahir dilakukan sesuai prosedur. (R, D, W)",
+                            "e) Program penurunan AKI-AKB dikoordinasikan dan dilaksanakan dengan lintas program dan sektor. (R, D, W)",
+                            "f) Pemantauan, evaluasi, dan tindak lanjut program dilakukan. (D, W)",
+                            "g) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 4.3", title: "Peningkatan cakupan dan mutu imunisasi.", kriteriaList: [
+                        { id: "Kriteria 4.3.1", title: "Program imunisasi direncanakan, dilaksanakan, dipantau, dan dievaluasi.", eps: [
+                            "a) Indikator dan target kinerja imunisasi ditetapkan, disertai capaian dan analisisnya. (R, D, W)",
+                            "b) Program imunisasi ditetapkan. (R, W)",
+                            "c) Vaksin dan logistik tersedia sesuai kebutuhan. (R, D, O, W)",
+                            "d) Pengelolaan rantai dingin vaksin dilakukan sesuai prosedur. (R, D, O, W)",
+                            "e) Kegiatan peningkatan cakupan dan mutu imunisasi dikoordinasikan dan dilaksanakan. (R, D, W)",
+                            "f) Pemantauan, evaluasi, dan tindak lanjut upaya perbaikan program dilakukan. (D, W)",
+                            "g) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 4.4", title: "Program penanggulangan tuberkulosis.", kriteriaList: [
+                        { id: "Kriteria 4.4.1", title: "Puskesmas melaksanakan pelayanan TBC secara komprehensif.", eps: [
+                            "a) Indikator dan target kinerja TBC ditetapkan, disertai capaian dan analisisnya. (R, D, W)",
+                            "b) Rencana program penanggulangan TBC ditetapkan. (R)",
+                            "c) Tim TB DOTS di Puskesmas ditetapkan. (R)",
+                            "d) Logistik OAT dan non-OAT tersedia dan dikelola sesuai prosedur. (R, D, O, W)",
+                            "e) Tata laksana kasus TBC dilakukan sesuai kebijakan. (R, D, O, W)",
+                            "f) Program TBC dikoordinasikan dan dilaksanakan dengan lintas program dan sektor. (R, D, W)",
+                            "g) Pemantauan, evaluasi, dan tindak lanjut program dilakukan. (D, W)",
+                            "h) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 4.5", title: "Pengendalian penyakit tidak menular (PTM) dan faktor risikonya.", kriteriaList: [
+                        { id: "Kriteria 4.5.1", title: "Program pencegahan dan pengendalian PTM serta faktor risikonya direncanakan, dilaksanakan, dan ditindaklanjuti.", eps: [
+                            "a) Indikator kinerja pengendalian PTM ditetapkan, disertai capaian dan analisisnya. (R, D, W)",
+                            "b) Program pengendalian PTM ditetapkan. (R, W)",
+                            "c) Kegiatan pengendalian PTM dikoordinasikan dan dilaksanakan. (R, D, W)",
+                            "d) Tahapan kegiatan dan pemeriksaan PTM di Posbindu diselenggarakan sesuai ketentuan. (R, D, O, W)",
+                            "e) Tata laksana PTM dilakukan secara terpadu sesuai PPK. (D, O, W)",
+                            "f) Pemantauan, evaluasi, dan tindak lanjut program dilakukan. (D, W)",
+                            "g) Pencatatan dan pelaporan dilakukan sesuai prosedur. (R, D, W)"
+                        ]}
+                    ]}
+                ]
+            },
+            "BAB5": {
+                title: "BAB V: PENINGKATAN MUTU PUSKESMAS (PMP)", icon: "📈", color: "purple",
+                standarList: [
+                    { id: "Standar 5.1", title: "Peningkatan mutu berkesinambungan.", kriteriaList: [
+                        { id: "Kriteria 5.1.1", title: "Kepala Puskesmas menetapkan penanggung jawab mutu, tim mutu, dan program peningkatan mutu.", eps: [
+                            "a) Kepala Puskesmas membentuk tim mutu sesuai persyaratan dilengkapi dengan uraian tugas, dan menetapkan program peningkatan mutu. (R, W)",
+                            "b) Puskesmas bersama tim mutu mengimplementasikan dan mengevaluasi program peningkatan mutu. (D, W)",
+                            "c) Tim Mutu menyusun program peningkatan mutu dan melakukan tindak lanjut upaya peningkatan mutu secara berkesinambungan. (D, W)",
+                            "d) Program peningkatan mutu dikomunikasikan kepada lintas program dan lintas sektor, serta dilaporkan secara berkala. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.1.2", title: "Kepala Puskesmas dan tim berkomitmen membudayakan peningkatan mutu melalui pengelolaan indikator mutu.", eps: [
+                            "a) Terdapat kebijakan tentang indikator mutu Puskesmas yang dilengkapi dengan profil indikator. (R)",
+                            "b) Dilakukan pengukuran indikator mutu sesuai profil indikator. (D, W)",
+                            "c) Dilakukan evaluasi terhadap upaya peningkatan mutu Puskesmas berdasarkan tindak lanjut dari rencana perbaikan. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.1.3", title: "Dilakukan validasi dan analisis hasil pengumpulan data indikator mutu.", eps: [
+                            "a) Dilakukan validasi data terhadap hasil pengumpulan data indikator. (D, O, W)",
+                            "b) Dilakukan analisis data seperti yang disebutkan dalam pokok pikiran. (D, W)",
+                            "c) Disusun rencana tindak lanjut berdasarkan hasil analisis dalam bentuk program peningkatan mutu. (R, D, W)",
+                            "d) Dilakukan tindak lanjut dan evaluasi terhadap program peningkatan mutu. (D, W)",
+                            "e) Dilakukan pelaporan indikator mutu kepada kepala puskesmas dan dinas kesehatan. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.1.4", title: "Peningkatan Mutu dicapai dan dipertahankan.", eps: [
+                            "a) Terdapat bukti Puskesmas telah mengujicobakan rencana peningkatan mutu. (D, W)",
+                            "b) Terdapat bukti Puskesmas telah melakukan evaluasi dan tindak lanjut terhadap hasil uji coba. (D, W)",
+                            "c) Keberhasilan program peningkatan mutu dikomunikasikan dan disosialisasikan serta didokumentasikan. (D, W)",
+                            "d) Dilakukan pelaporan program peningkatan mutu kepada dinas kesehatan minimal setahun sekali. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 5.2", title: "Program manajemen risiko.", kriteriaList: [
+                        { id: "Kriteria 5.2.1", title: "Risiko dalam penyelenggaraan upaya Puskesmas diidentifikasi dan dianalisis.", eps: [
+                            "a) Disusun program manajemen risiko untuk ditetapkan oleh Kepala Puskesmas. (R, W)",
+                            "b) Tim Mutu Puskesmas memandu penatalaksanaan risiko. (D, W)",
+                            "c) Dilakukan identifikasi, analisis dan evaluasi risiko yang didokumentasikan dalam daftar risiko. (D, W)",
+                            "d) Disusun profil risiko yang merupakan risiko prioritas berdasar evaluasi. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.2.2", title: "Puskesmas melaksanakan penatalaksanaan risiko sesuai dengan ketentuan yang berlaku.", eps: [
+                            "a) Disusun rencana penanganan risiko yang diintegrasikan dalam perencanaan tingkat Puskesmas. (D)",
+                            "b) Tim Mutu Puskesmas membuat pemantauan terhadap rencana penanganan. (D, W)",
+                            "c) Dilakukan pelaporan kepada Kepala Puskesmas dan dinas kesehatan. (D, W)",
+                            "d) Ada bukti Puskesmas telah melakukan dan menindaklanjuti analisis FMEA minimal setiap setahun sekali. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 5.3", title: "Sasaran keselamatan pasien (SKP).", kriteriaList: [
+                        { id: "Kriteria 5.3.1", title: "Proses identifikasi pasien dilakukan dengan benar.", eps: [
+                            "a) Dilakukan identifikasi pasien sebelum dilakukan prosedur diagnostik, tindakan, pemberian obat, imunisasi, dan pemberian diet. (R, D, O, W)",
+                            "b) Dilakukan prosedur tepat identifikasi pada pasien dengan kondisi khusus. (R, D, O, W)"
+                        ]},
+                        { id: "Kriteria 5.3.2", title: "Proses untuk meningkatkan efektivitas komunikasi dalam pemberian asuhan ditetapkan dan dilaksanakan.", eps: [
+                            "a) Pemberian perintah secara verbal lewat telepon menggunakan teknik SBAR dan TBAK. (D, W)",
+                            "b) Pelaporan kondisi pasien dan pelaporan nilai kritis hasil lab dilakukan sesuai prosedur (tulis, baca ulang, konfirmasi). (D, W, S)",
+                            "c) Dilakukan komunikasi efektif pada proses serah terima pasien (SBAR) secara konsisten. (R, D, W, S)"
+                        ]},
+                        { id: "Kriteria 5.3.3", title: "Proses untuk meningkatkan keamanan terhadap obat-obat yang perlu diwaspadai (high alert) ditetapkan dan dilaksanakan.", eps: [
+                            "a) Disusun daftar obat yang perlu diwaspadai dan obat NORUM serta dilakukan pelabelan dan penataan khusus. (R, D, O, W)",
+                            "b) Dilakukan pengawasan dan pengendalian penggunaan obat-obatan psikotropika/narkotika dan high alert. (D, O, W)"
+                        ]},
+                        { id: "Kriteria 5.3.4", title: "Proses untuk memastikan Tepat Pasien, Tepat Prosedur, dan Tepat Sisi pada pasien yang menjalani tindakan medis ditetapkan dan dilaksanakan.", eps: [
+                            "a) Dilakukan penandaan sisi operasi/tindakan medis secara konsisten. (R, O, W, S)",
+                            "b) Dilakukan verifikasi sebelum operasi/tindakan medis. (D, O, W)",
+                            "c) Dilakukan penjedaan (time out) sebelum operasi/tindakan medis. (O, W)"
+                        ]},
+                        { id: "Kriteria 5.3.5", title: "Proses kebersihan tangan diterapkan untuk menurunkan risiko infeksi.", eps: [
+                            "a) Ditetapkan standar kebersihan tangan yang mengacu pada standar WHO. (R)",
+                            "b) Dilakukan kebersihan tangan sesuai dengan regulasi yang ditetapkan. (D, O, W)"
+                        ]},
+                        { id: "Kriteria 5.3.6", title: "Proses untuk mengurangi risiko pasien jatuh disusun dan dilaksanakan.", eps: [
+                            "a) Dilakukan penapisan dan pengkajian pasien dengan risiko jatuh serta dilakukan upaya untuk mengurangi risiko. (R, O, W, S)",
+                            "b) Dilakukan evaluasi dan tindak lanjut terhadap situasi dan lokasi yang diidentifikasi berisiko terjadi pasien jatuh. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 5.4", title: "Pelaporan insiden keselamatan pasien dan pengembangan budaya keselamatan.", kriteriaList: [
+                        { id: "Kriteria 5.4.1", title: "Dilakukan pelaporan, dokumentasi, analisis akar masalah, dan penyusunan tindakan korektif IKP.", eps: [
+                            "a) Dilakukan pelaporan jika terjadi insiden kepada tim keselamatan pasien disertai dengan analisis, investigasi, dan tindak lanjut. (R, D, W)",
+                            "b) Dilakukan pelaporan kepada Komite Nasional Keselamatan Pasien (KNKP) terhadap insiden KTD dan Sentinel. (D, O, W)"
+                        ]},
+                        { id: "Kriteria 5.4.2", title: "Tenaga kesehatan pemberi asuhan berperan penting dalam memperbaiki perilaku yang mencerminkan budaya mutu dan keselamatan.", eps: [
+                            "a) Dilakukan pengukuran budaya keselamatan pasien dengan melakukan survei. (D, W)",
+                            "b) Puskesmas membuat sistem untuk mengidentifikasi dan melaporkan perilaku yang tidak mendukung budaya keselamatan. (D, W)",
+                            "c) Dilakukan edukasi tentang mutu klinis dan keselamatan pasien pada semua tenaga kesehatan. (D, W)"
+                        ]}
+                    ]},
+                    { id: "Standar 5.5", title: "Program pencegahan dan pengendalian infeksi (PPI).", kriteriaList: [
+                        { id: "Kriteria 5.5.1", title: "Regulasi dan program PPI dilaksanakan oleh seluruh karyawan secara komprehensif.", eps: [
+                            "a) Puskesmas menyusun rencana dan melaksanakan program PPI yang komprehensif. (R, D)",
+                            "b) Dilakukan pemantauan, evaluasi, tindak lanjut, dan pelaporan terhadap pelaksanaan program PPI. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.5.2", title: "Dilakukan identifikasi berbagai risiko infeksi sebagai dasar untuk menyusun dan menerapkan strategi untuk mengurangi risiko.", eps: [
+                            "a) Dilakukan identifikasi dan kajian risiko infeksi terkait dengan penyelenggaraan pelayanan. (D, W)",
+                            "b) Disusun dan dilaksanakan strategi untuk meminimalkan risiko infeksi. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.5.3", title: "Puskesmas mengimplementasikan program PPI untuk mengurangi risiko infeksi.", eps: [
+                            "a) Terdapat bukti penerapan dan pemantauan prinsip kewaspadaan standar. (R, D, O, W)",
+                            "b) Jika ada pengelolaan yang dilaksanakan oleh pihak ketiga, Puskesmas harus memastikan standar mutu diterapkan. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.5.4", title: "Puskesmas melakukan upaya kebersihan tangan sesuai standar.", eps: [
+                            "a) Dilakukan edukasi kebersihan tangan pada seluruh karyawan, pasien, dan keluarga pasien. (D, W)",
+                            "b) Sarana dan prasarana untuk kebersihan tangan tersedia di tempat pelayanan. (O)",
+                            "c) Dilakukan evaluasi dan tindak lanjut terhadap pelaksanaan kebersihan tangan secara periodik. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.5.5", title: "Dilakukan upaya pencegahan penularan infeksi dengan penerapan kewaspadaan berdasar transmisi.", eps: [
+                            "a) Dilakukan identifikasi penyakit infeksi yang ditularkan melalui transmisi airborne dan upaya pencegahannya. (R, O, W)",
+                            "b) Dilakukan evaluasi dan tindak lanjut terhadap hasil pemantauan pencegahan transmisi infeksi. (D, W)"
+                        ]},
+                        { id: "Kriteria 5.5.6", title: "Ditetapkan dan dilakukan proses untuk menangani outbreak infeksi.", eps: [
+                            "a) Dilakukan identifikasi mengenai kemungkinan terjadinya outbreak infeksi. (D, W)",
+                            "b) Jika terjadi outbreak infeksi, dilakukan penanggulangan sesuai dengan kebijakan dan prosedur. (D, W)"
+                        ]}
+                    ]}
+                ]
+            }
+        };
+
+        const rdowsDetailMap = {
+            'R': 'Dokumen Regulasi: SK, Pedoman, Panduan, SOP, atau KAK.',
+            'D': 'Dokumen Bukti: Laporan, rekam medis, notulensi, absensi, survei, foto, dsb.',
+            'O': 'Observasi: Dokumen/Foto hasil observasi fisik pada sarana prasarana atau pelaksanaan prosedur.'
+        };
+
+        const fileRegistry = {};
+        let currentUploadTarget = { babTitle: '', standardId: '', criteriaId: '', epId: '', rdowsType: '', buttonElement: null, slotId: '', epText: '' };
+
+        function getRdowsBadge(type) {
+            const styles = {
+                'R': 'bg-blue-100 text-blue-700 border-blue-200',
+                'D': 'bg-green-100 text-green-700 border-green-200',
+                'O': 'bg-amber-100 text-amber-700 border-amber-200'
+            };
+            return `<span class="${styles[type] || 'bg-slate-100'} px-2 py-0.5 rounded font-bold text-xs border inline-block min-w-[24px] text-center">${type}</span>`;
+        }
+
+        function renderExplorerContent() {
+            const container = document.getElementById('explorer-content');
+            container.innerHTML = '';
+            
+            Object.entries(rawData).forEach(([babKey, babData]) => {
+                const babWrapper = document.createElement('div');
+                
+                const babHeader = document.createElement('div');
+                babHeader.className = `p-4 bg-${babData.color}-50 border-b border-slate-200 text-lg font-bold text-${babData.color}-800 flex items-center gap-2`;
+                babHeader.innerHTML = `<span>${babData.icon}</span> ${babData.title}`;
+                babWrapper.appendChild(babHeader);
+
+                const safeBabTitle = babData.title.replace(/:/g, ' -').replace(/[\/\\?*|<>"]/g, '');
+
+                babData.standarList.forEach(standard => {
+                    const stdAccordion = document.createElement('div');
+                    stdAccordion.className = 'border-b border-slate-200 last:border-b-0 bg-white';
+
+                    const stdHeader = document.createElement('button');
+                    stdHeader.className = 'w-full flex justify-between items-center p-4 hover:bg-slate-50 transition-colors focus:outline-none group';
+                    stdHeader.innerHTML = `
+                        <h3 class="font-semibold text-slate-800 text-left group-hover:text-teal-600 transition-colors">${standard.id}: ${standard.title}</h3>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300"></i>
+                    `;
+                    
+                    const stdContent = document.createElement('div');
+                    stdContent.className = 'accordion-content bg-slate-50/50 px-4 pb-0';
+
+                    standard.kriteriaList.forEach(kriteria => {
+                        const kritCard = document.createElement('div');
+                        kritCard.className = 'bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-hidden';
+                        
+                        const kritHeader = document.createElement('div');
+                        kritHeader.className = `bg-${babData.color}-100/50 p-3 border-b border-slate-200`;
+                        kritHeader.innerHTML = `<h4 class="font-bold text-slate-700 text-sm">${kriteria.id}: ${kriteria.title}</h4>`;
+                        kritCard.appendChild(kritHeader);
+
+                        const kritBody = document.createElement('div');
+                        kritBody.className = 'p-4 space-y-4';
+
+                        kriteria.eps.forEach(epStr => {
+                            const matchId = epStr.match(/^([a-z])\)\s*(.*)/);
+                            if(!matchId) return;
+                            
+                            const epId = matchId[1];
+                            let fullText = matchId[2];
+                            
+                            // Ekstrak RDOWS
+                            const methodsRegex = /\([\sRDOWS,]+\)\s*$/i;
+                            const match = fullText.match(methodsRegex);
+                            let cleanText = fullText;
+                            let rdowsTypes = [];
+                            
+                            if (match) {
+                                cleanText = fullText.replace(methodsRegex, '').trim();
+                                const typesString = match[0].toUpperCase();
+                                
+                                // FILTER KHUSUS FASYANKES HANYA R, D, O YANG DIMASUKKAN
+                                ['R', 'D', 'O'].forEach(t => {
+                                    if(typesString.includes(t)) rdowsTypes.push(t);
+                                });
+                            }
+
+                            // Mengamankan teks untuk argumen fungsi JS
+                            const safeCleanText = cleanText.replace(/['"\\]/g, ''); 
+
+                            const epBlock = document.createElement('div');
+                            epBlock.className = 'border-l-4 border-l-teal-500 pl-4 py-1';
+                            
+                            // Jika EP tersebut tidak memiliki R, D, atau O sama sekali (Contoh: Hanya W/S)
+                            if(rdowsTypes.length === 0) {
+                                epBlock.classList.replace('border-l-teal-500', 'border-l-slate-300');
+                                epBlock.innerHTML = `
+                                    <p class="font-medium text-slate-600 text-sm leading-relaxed"><span class="text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded mr-1">EP ${epId})</span> ${cleanText}</p>
+                                    <p class="text-xs text-amber-600 font-medium italic mt-2.5 bg-amber-50 inline-block px-2 py-1 rounded border border-amber-100"><i class="fa-solid fa-circle-info"></i> EP ini hanya dinilai melalui Wawancara/Simulasi (Tidak memerlukan unggahan dokumen).</p>
+                                `;
+                            } else {
+                                let rdowsHtml = '';
+                                rdowsTypes.forEach((type, index) => {
+                                    const slotId = `${standard.id.replace(/\s+/g, '')}_${kriteria.id.replace(/\s+/g, '').replace(/\./g, '_')}_EP${epId}_${type}_${index}`;
+                                    
+                                    rdowsHtml += `
+                                        <div class="mt-3 pt-3 border-t border-slate-100/60">
+                                            <div class="flex items-start gap-3 mb-3">
+                                                <div class="mt-0.5">${getRdowsBadge(type)}</div>
+                                                <p class="text-sm text-slate-600 leading-relaxed">${rdowsDetailMap[type]}</p>
+                                            </div>
+                                            
+                                            <!-- Container File -->
+                                            <div id="fileList_${slotId}" class="flex flex-col gap-2 mb-3 pl-9 empty:hidden"></div>
+    
+                                            <!-- Tombol Upload -->
+                                            <div class="flex flex-wrap items-center gap-2 pl-9">
+                                                <button id="btnUpload_${slotId}" onclick="triggerUpload('${safeBabTitle}', '${standard.id}', '${kriteria.id}', '${epId}', '${type}', this, '${slotId}', '${safeCleanText}')" 
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-md text-xs font-semibold hover:bg-slate-50 hover:text-teal-600 transition shadow-sm">
+                                                    <i class="fa-solid fa-cloud-arrow-up text-teal-500"></i> <span class="btn-text">Unggah Bukti</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+    
+                                epBlock.innerHTML = `
+                                    <p class="font-medium text-slate-800 text-sm leading-relaxed"><span class="text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded mr-1">EP ${epId})</span> ${cleanText}</p>
+                                    ${rdowsHtml}
+                                `;
+                            }
+
+                            kritBody.appendChild(epBlock);
+                        });
+
+                        kritCard.appendChild(kritBody);
+                        stdContent.appendChild(kritCard);
+                    });
+
+                    if(stdContent.lastChild) {
+                        stdContent.style.paddingBottom = '1rem';
+                        stdContent.firstElementChild.style.marginTop = '1rem';
+                    }
+
+                    // Logika Akordion Standar
+                    stdHeader.addEventListener('click', () => {
+                        const icon = stdHeader.querySelector('i');
+                        const isOpen = stdContent.classList.contains('open');
+
+                        if (!isOpen) {
+                            stdContent.classList.add('open');
+                            icon.style.transform = 'rotate(180deg)';
+                        } else {
+                            stdContent.classList.remove('open');
+                            icon.style.transform = 'rotate(0deg)';
+                        }
+                    });
+
+                    stdAccordion.appendChild(stdHeader);
+                    stdAccordion.appendChild(stdContent);
+                    babWrapper.appendChild(stdAccordion);
+                });
+                
+                container.appendChild(babWrapper);
+            });
+        }
+
+        const modal = document.getElementById('setupModal');
+        const modalContent = document.getElementById('setupModalContent');
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msg = document.getElementById('toastMessage');
+
+            msg.textContent = message;
+
+            toast.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 z-50 flex items-center gap-3 font-medium text-sm max-w-sm ${
+                type === 'success' ? 'bg-emerald-600 text-white' :
+                type === 'error' ? 'bg-red-500 text-white' :
+                'bg-blue-600 text-white'
+            }`;
+
+            icon.className = `text-lg ${
+                type === 'success' ? 'fa-solid fa-check-circle' :
+                type === 'error' ? 'fa-solid fa-triangle-exclamation' :
+                'fa-solid fa-info-circle spinner'
+            }`;
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    toast.classList.add('translate-y-24', 'opacity-0');
+                }, 3500);
+            }
+        }
+
+        function hideToast() {
+            document.getElementById('toast').classList.add('translate-y-24', 'opacity-0');
+        }
+
+        function openSetupModal() {
+            document.getElementById('gasUrlInput').value = GAS_WEB_APP_URL;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeSetupModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function saveGasUrl() {
+            const url = document.getElementById('gasUrlInput').value.trim();
+            if(url && !url.startsWith('https://script.google.com/')) {
+                showToast('URL tidak valid. Harus berawalan https://script.google.com/', 'error');
+                return;
+            }
+            GAS_WEB_APP_URL = url;
+            localStorage.setItem(STORAGE_KEY_GAS, url);
+            showToast('URL Google Apps Script berhasil disimpan!');
+            closeSetupModal();
+        }
+
+        function copyScriptCode() {
+            const code = document.getElementById('gasScriptCode').innerText;
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = code;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('Kode Script disalin ke clipboard');
+            } catch (err) {
+                showToast('Gagal menyalin kode', 'error');
+            }
+            document.body.removeChild(tempTextArea);
+        }
+
+        function triggerUpload(babTitle, standardId, criteriaId, epId, rdowsType, btnElement, slotId, epText) {
+            currentUploadTarget = { babTitle, standardId, criteriaId, epId, rdowsType, buttonElement: btnElement, slotId: slotId, epText: epText };
+            document.getElementById('hiddenFileInput').click();
+        }
+
+        document.getElementById('hiddenFileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            event.target.value = ''; // Reset
+            processFileUpload(file);
+        });
+
+        function processFileUpload(file) {
+            const target = currentUploadTarget;
+            const maxSize = 10 * 1024 * 1024; // Limit 10MB
+            
+            if (file.size > maxSize) {
+                showToast('Ukuran file terlalu besar (Maks 10MB)', 'error');
+                return;
+            }
+
+            // ====================================================
+            // LOGIKA PENAMAAN CERDAS & KATEGORISASI (Puskesmas)
+            // ====================================================
+            const epId = target.epId;
+            const type = target.rdowsType;
+            const epText = target.epText || '';
+
+            // 1. Ekstrak Konsep EP (Tidak potong tengah kata)
+            let cleanTextForConcept = epText.replace(/^[^a-zA-Z0-9]+/, ''); 
+            const words = cleanTextForConcept.split(' ');
+            let epConcept = '';
+            for (let i = 0; i < words.length; i++) {
+                if ((epConcept + words[i]).length > 40) break;
+                epConcept += (epConcept ? ' ' : '') + words[i];
+            }
+            epConcept = epConcept.replace(/[,.;:()]+$/, ''); 
+            epConcept = epConcept.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+            // 2. Deteksi Cerdas Kategori Dokumen dari Teks
+            let category = '';
+            let textToCheck = epText.toLowerCase();
+
+            if (type === 'R') {
+                if (textToCheck.includes('kebijakan') || textToCheck.includes('ditetapkan') || textToCheck.includes('keputusan')) category = '(SK)';
+                else if (textToCheck.includes('prosedur')) category = '(SOP)';
+                else if (textToCheck.includes('pedoman') || textToCheck.includes('panduan')) category = '(Panduan)';
+                else if (textToCheck.includes('kerangka acuan') || textToCheck.includes('kak')) category = '(KAK)';
+                else category = '(Regulasi)';
+            } else if (type === 'D') {
+                if (textToCheck.includes('rekam medis') || textToCheck.includes('rekam medik')) category = '(Rekam Medis)';
+                else if (textToCheck.includes('laporan') || textToCheck.includes('evaluasi') || textToCheck.includes('analisis')) category = '(Laporan)';
+                else if (textToCheck.includes('bukti') || textToCheck.includes('pelaksanaan')) category = '(Bukti Pelaksanaan)';
+                else category = '(Dokumen)';
+            } else if (type === 'O') {
+                category = '(Observasi)';
+            }
+
+            // 3. Ambil Ekstensi Saja (NAMA ASLI DIBUANG)
+            const lastDotIndex = file.name.lastIndexOf('.');
+            const ext = lastDotIndex !== -1 ? file.name.substring(lastDotIndex) : '';
+
+            // 4. Format Akhir Penamaan
+            // Contoh Hasil: EP a - R (SK) - Visi Misi Tujuan Dan Tata.pdf
+            const formattedFileName = `EP ${epId} - ${type} ${category} - ${epConcept}${ext}`;
+            // ====================================================
+
+            const originalBtnHtml = target.buttonElement.innerHTML;
+            target.buttonElement.innerHTML = '<i class="fa-solid fa-circle-notch spinner text-teal-500"></i> Mengunggah...';
+            target.buttonElement.disabled = true;
+            
+            showToast('Sedang memproses dan mengunggah ke Drive...', 'loading');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                
+                // Hierarki Folder di Drive: Bab / Standar / Kriteria / EP
+                const folderPath = `Bukti_Akreditasi_Puskesmas/${target.babTitle}/${target.standardId}/${target.criteriaId}/EP_${target.epId}`;
+
+                const payload = {
+                    fileName: formattedFileName, 
+                    mimeType: file.type,
+                    fileBase64: base64Data,
+                    folderPath: folderPath
+                };
+
+                // SIMULASI (Bila URL GAS Kosong)
+                if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.trim() === '') {
+                    setTimeout(() => {
+                        hideToast();
+                        const localUrl = URL.createObjectURL(file);
+                        const fileObj = { name: formattedFileName, url: localUrl };
+                        
+                        saveFileRegistry(target.slotId, fileObj);
+                        
+                        target.buttonElement.innerHTML = originalBtnHtml;
+                        target.buttonElement.disabled = false;
+                        
+                        updateUIAfterUpload(target.slotId, fileObj);
+                        showToast('SIMULASI: File disimpan lokal. Setup Drive untuk unggah ke cloud.', 'success');
+                    }, 1500);
+                    return;
+                }
+
+                // PRODUKSI: Kirim ke Google Apps Script
+                fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    hideToast();
+                    target.buttonElement.innerHTML = originalBtnHtml;
+                    target.buttonElement.disabled = false;
+
+                    if (result.success) {
+                        const fileObj = { name: formattedFileName, url: result.url };
+                        saveFileRegistry(target.slotId, fileObj);
+                        updateUIAfterUpload(target.slotId, fileObj);
+                        showToast(`Berhasil diunggah ke: ${target.criteriaId}/EP_${target.epId}`, 'success');
+                    } else {
+                        showToast('Gagal mengunggah: ' + result.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    hideToast();
+                    target.buttonElement.innerHTML = originalBtnHtml;
+                    target.buttonElement.disabled = false;
+                    console.error('Upload Error:', error);
+                    showToast('Terjadi kesalahan koneksi ke Google Drive.', 'error');
+                });
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function saveFileRegistry(slotId, fileObj) {
+            if (!fileRegistry[slotId]) {
+                fileRegistry[slotId] = []; 
+            }
+            fileRegistry[slotId].push(fileObj); 
+        }
+
+        function updateUIAfterUpload(slotId, fileObj) {
+            const fileListContainer = document.getElementById(`fileList_${slotId}`);
+            const uploadBtn = document.getElementById(`btnUpload_${slotId}`);
+            const btnText = uploadBtn.querySelector('.btn-text');
+            
+            if (btnText) {
+                btnText.textContent = "Tambah Bukti";
+            }
+            
+            const fileLink = document.createElement('a');
+            fileLink.href = fileObj.url;
+            fileLink.target = "_blank";
+            fileLink.download = fileObj.name;
+            fileLink.className = "inline-flex items-center justify-between gap-3 px-3 py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-md text-xs hover:bg-teal-100 transition shadow-sm w-fit max-w-full group";
+            
+            fileLink.innerHTML = `
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <i class="fa-brands fa-google-drive text-teal-600 shrink-0"></i>
+                    <span class="truncate font-medium group-hover:underline" title="${fileObj.name}">${fileObj.name}</span>
+                </div>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-70 shrink-0 group-hover:opacity-100"></i>
+            `;
+            
+            fileListContainer.appendChild(fileLink);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderExplorerContent();
+            
+            if(!GAS_WEB_APP_URL) {
+                setTimeout(() => {
+                    showToast('Klik "Setup Google Drive" untuk menyambungkan dengan cloud Anda.', 'loading');
+                    setTimeout(hideToast, 4000);
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
