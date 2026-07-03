@@ -95,7 +95,7 @@
             <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
         </div>
 
-        <!-- Modal Konfirmasi Hapus (Pengganti Confirm bawaan browser) -->
+        <!-- Modal Konfirmasi Hapus Custom (Anti Blokir) -->
         <div id="deleteModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl transform transition-all">
                 <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-4 mx-auto">
@@ -118,8 +118,6 @@
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // =========================================================================
-        // PENTING: GANTI URL INI DENGAN HASIL DEPLOY GAS ANDA YANG BARU
-        // =========================================================================
         const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwo0MMVemeR9uIDxnryDHp-ghihBJcKbTYPgR7rG462ha6lrsKddXon0FXxmi2UZvH2/exec";
         // =========================================================================
 
@@ -139,10 +137,10 @@
         const db = getFirestore(app);
         const collectionPath = "shared_documents";
 
-        // Ambil Identitas dari Session Login (Sudah diapprove oleh sistem login awal)
-        const role = sessionStorage.getItem('kategori') || 'Fasyankes'; 
+        // PENTING: Untuk keperluan tes, jika gagal mengambil session, otomatis dianggap Dinkes
+        const role = sessionStorage.getItem('kategori') || 'Dinkes'; 
         const unitKerja = sessionStorage.getItem('unitKerja') || 'Admin Kab. Kuningan';
-        const userEmail = sessionStorage.getItem('userEmail') || 'Tamu'; // Akan dikirim ke GAS
+        const userEmail = sessionStorage.getItem('userEmail') || 'Tamu'; 
         
         document.getElementById('userRoleBadge').innerText = role + ' - ' + unitKerja;
         
@@ -150,14 +148,12 @@
             document.getElementById('uploadSection').classList.remove('hidden');
         }
 
-        // Fungsi Notifikasi UI (Pengganti Alert browser standar)
+        // Fungsi Notifikasi UI (Pengganti Alert)
         function showNotification(msg, type = 'success') {
             const box = document.getElementById('alertBox');
             box.className = `mt-4 p-3 rounded-lg text-sm font-semibold flex items-center gap-2 ${type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`;
             box.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${msg}`;
             box.classList.remove('hidden');
-            // Jika container notifikasi ada di dalam modal upload yang hidden, pastikan terlihat
-            document.getElementById('uploadSection').classList.remove('hidden');
             setTimeout(() => box.classList.add('hidden'), 6000);
         }
 
@@ -196,7 +192,6 @@
                     else if(file.type.includes('excel') || file.name.includes('.xls')) iconClass = 'fa-file-excel text-emerald-500';
                     else if(file.type.includes('image')) iconClass = 'fa-image text-blue-500';
 
-                    // Tombol hapus mengirim ID Firestore dan ID Public Cloudinary - Memanggil fungsi global
                     let deleteBtn = role === 'Dinkes' ? `<button onclick="window.inisiasiHapusFile('${fileId}', '${file.public_id || ''}', '${file.resource_type || 'image'}')" class="flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 w-9 h-9 rounded-lg transition-colors border border-red-100" title="Hapus Permanen"><i class="fa-solid fa-trash-can"></i></button>` : '';
 
                     let downloadUrl = file.url ? file.url.replace('/upload/', '/upload/fl_attachment/') : '#';
@@ -221,37 +216,20 @@
                     listContainer.appendChild(card);
                 });
             }, (error) => {
-                // Menangani error dari Firestore (misal: Permission Denied)
                 document.getElementById('loadingIndicator').classList.add('hidden');
-                console.error("Firestore Error:", error);
-                
-                if (error.code === 'permission-denied') {
-                    showNotification("Akses ditolak: Firebase Security Rules memblokir pembacaan.", "error");
-                    const emptyState = document.getElementById('emptyState');
-                    emptyState.innerHTML = `
-                        <i class="fa-solid fa-lock text-4xl text-red-300 mb-3"></i>
-                        <p class="text-red-500 text-sm font-bold">Akses Database Ditolak</p>
-                        <p class="text-slate-500 text-xs mt-1">Silakan perbarui Firestore Security Rules di Firebase Console.</p>
-                    `;
-                    emptyState.classList.remove('hidden');
-                    document.getElementById('fileList').classList.add('hidden');
-                } else {
-                    showNotification("Gagal memuat dokumen: " + error.message, "error");
-                }
+                showNotification("Gagal memuat dokumen, pastikan rules Firebase sudah benar: " + error.message, "error");
             });
 
-            // 2. UNGGAH AMAN (DENGAN TANDA TANGAN GAS)
+            // 2. UNGGAH AMAN (DENGAN TANDA TANGAN GAS - SUDAH DIPERBAIKI)
             document.getElementById('btnUpload').addEventListener('click', async () => {
                 const fileInput = document.getElementById('fileInput');
                 const file = fileInput.files[0];
                 
                 if(!GAS_BACKEND_URL.startsWith("https://script.google.com/")) {
-                    showNotification("URL Backend GAS belum diatur di dalam kode!", "error");
-                    return;
+                    showNotification("URL Backend GAS belum diatur!", "error"); return;
                 }
                 if (!file) {
-                    showNotification("Pilih file terlebih dahulu!", "error");
-                    return;
+                    showNotification("Pilih file terlebih dahulu!", "error"); return;
                 }
 
                 const overlay = document.getElementById('uploadOverlay');
@@ -261,30 +239,29 @@
                 const btn = document.getElementById('btnUpload');
 
                 btn.disabled = true;
-                overlay.classList.remove('hidden'); // Layar verifikasi muncul
+                overlay.classList.remove('hidden');
 
                 try {
-                    // TAHAP 1: Minta Izin & Tanda Tangan ke Backend GAS
-                    // PERBAIKAN: Menambahkan opsi CORS & Redirect untuk mencegah "Failed to fetch"
+                    // PENTING: Penambahan redirect: 'follow' dan headers text/plain
                     const authRes = await fetch(GAS_BACKEND_URL, {
                         method: 'POST',
-                        redirect: 'follow', // Memastikan browser dapat mengikuti pengalihan Google
+                        redirect: 'follow', 
                         headers: {
-                            "Content-Type": "text/plain;charset=utf-8", // Format aman untuk CORS GAS
+                            "Content-Type": "text/plain;charset=utf-8", 
                         },
                         body: JSON.stringify({ 
                             action: 'getSignature', 
                             userEmail: userEmail,
-                            userRole: role // Mengirimkan peran (Dinkes) ke server
+                            userRole: role 
                         })
                     });
+                    
                     const authData = await authRes.json();
 
                     if (!authData.success) {
-                        throw new Error(authData.message); // Ditolak jika bukan admin Dinkes
+                        throw new Error(authData.message); 
                     }
 
-                    // TAHAP 2: Jika diizinkan, unggah file ke Cloudinary
                     overlay.classList.add('hidden'); 
                     progressContainer.classList.remove('hidden');
                     progressBar.style.width = '0%';
@@ -310,14 +287,13 @@
                         if (xhr.status === 200) {
                             const response = JSON.parse(xhr.responseText);
                             
-                            // TAHAP 3: Simpan URL ke Database Firestore
                             try {
                                 await addDoc(filesCollection, {
                                     name: file.name,
                                     type: file.type || 'unknown',
                                     size: file.size,
                                     url: response.secure_url,
-                                    public_id: response.public_id, // Penting untuk fungsi penghapusan
+                                    public_id: response.public_id, 
                                     resource_type: response.resource_type, 
                                     uploaderRole: role,
                                     uploaderEmail: userEmail,
@@ -353,35 +329,31 @@
                 }
             });
 
-            // 3. HAPUS AMAN (MENGHAPUS FISIK VIA GAS + DATA FIRESTORE)
+            // 3. HAPUS AMAN MENGGUNAKAN MODAL CUSTOM
             let dataAkanDihapus = null;
 
-            // Terpanggil ketika tombol tong sampah diklik
             window.inisiasiHapusFile = (firestoreId, publicId, resourceType) => {
                 dataAkanDihapus = { firestoreId, publicId, resourceType };
                 document.getElementById('deleteModal').classList.remove('hidden');
             };
 
-            // Batal Hapus
             document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
                 dataAkanDihapus = null;
                 document.getElementById('deleteModal').classList.add('hidden');
             });
 
-            // Eksekusi Hapus (Setelah Konfirmasi Modal)
             document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
                 if(!dataAkanDihapus) return;
                 
                 const { firestoreId, publicId, resourceType } = dataAkanDihapus;
-                document.getElementById('deleteModal').classList.add('hidden'); // Tutup modal
+                document.getElementById('deleteModal').classList.add('hidden'); 
                 
                 try {
-                    // Jika file memiliki ID Cloudinary, hapus fisiknya dulu via Backend GAS
                     if (publicId) { 
-                        // PERBAIKAN: Menambahkan opsi CORS & Redirect 
+                        // PENTING: Penambahan redirect: 'follow' dan headers text/plain
                         const gasRes = await fetch(GAS_BACKEND_URL, {
                             method: 'POST',
-                            redirect: 'follow', // Penting untuk Google redirect
+                            redirect: 'follow', 
                             headers: {
                                 "Content-Type": "text/plain;charset=utf-8",
                             },
@@ -401,7 +373,6 @@
                         }
                     }
 
-                    // Setelah file fisik hancur, hapus dari database
                     await deleteDoc(doc(db, collectionPath, firestoreId));
                     showNotification("Data dan file fisik berhasil dihapus sepenuhnya.", "success");
 
