@@ -6,11 +6,16 @@
     <title>Pusat Dokumen | SEHATI</title>
     
     <script>
+        // Pengecekan Keamanan & Autentikasi (Sama seperti dashboard.html)
         (function() {
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "";
+            const allowedDomain = "alfan-23.github.io";
+            const currentDomain = window.location.hostname;
+            const isLocal = currentDomain === "localhost" || currentDomain === "127.0.0.1" || currentDomain === "";
+            
             if (!isLoggedIn && !isLocal) {
-                // window.location.href = 'index.html'; // Aktifkan di produksi
+                // Dimatikan sementara untuk pratinjau agar tidak redirect paksa
+                // window.location.href = 'index.html'; 
             }
         })();
     </script>
@@ -41,22 +46,15 @@
         </div>
     </header>
 
-    <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8 relative">
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8">
         
         <!-- Area Upload (Hanya untuk Dinkes) -->
-        <div id="uploadSection" class="hidden mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <!-- Overlay Verifikasi Keamanan -->
-            <div id="uploadOverlay" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-                <i class="fa-solid fa-shield-halved text-4xl text-skyblue mb-3 animate-pulse"></i>
-                <p class="font-bold text-navy text-sm">Memverifikasi Otorisasi Admin di Server...</p>
-                <p class="text-xs text-slate-500 mt-1">Meminta tanda tangan enkripsi file</p>
-            </div>
-
-            <h2 class="text-lg font-bold text-navy mb-4 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up text-skyblue mr-2"></i> Unggah Dokumen Baru (Admin)</h2>
+        <div id="uploadSection" class="hidden mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-lg font-bold text-navy mb-4 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up text-skyblue mr-2"></i> Unggah Dokumen Baru (Admin Dinkes)</h2>
             
             <div class="flex flex-col md:flex-row gap-4 items-end">
                 <div class="flex-1 w-full">
-                    <label class="block text-xs font-semibold text-slate-500 mb-2">Pilih File (Tanpa batas ukuran)</label>
+                    <label class="block text-xs font-semibold text-slate-500 mb-2">Pilih File (Tanpa batas ukuran berkat Cloudinary)</label>
                     <input type="file" id="fileInput" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-skyblue/10 file:text-skyblue hover:file:bg-skyblue/20 cursor-pointer border border-slate-200 rounded-xl p-1 bg-slate-50">
                 </div>
                 <button id="btnUpload" class="w-full md:w-auto bg-navy hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2">
@@ -64,9 +62,10 @@
                 </button>
             </div>
             
+            <!-- Progress Bar (Baru) -->
             <div id="progressContainer" class="hidden w-full mt-4">
                 <div class="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                    <span id="progressLabel">Sedang mengunggah ke brankas awan...</span>
+                    <span>Sedang mengunggah ke brankas awan...</span>
                     <span id="progressText" class="text-skyblue">0%</span>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-2.5 border border-slate-200 overflow-hidden">
@@ -74,8 +73,8 @@
                 </div>
             </div>
 
-            <!-- Pesan Notifikasi -->
-            <div id="alertBox" class="hidden mt-4 p-3 rounded-lg text-sm font-semibold flex items-center gap-2"></div>
+            <p id="uploadStatus" class="text-sm text-emerald-600 mt-3 hidden font-medium"><i class="fa-solid fa-circle-check"></i> File berhasil diunggah!</p>
+            <p id="uploadError" class="text-sm text-red-600 mt-3 hidden font-medium"><i class="fa-solid fa-triangle-exclamation"></i> Gagal mengunggah file.</p>
         </div>
 
         <!-- Daftar File -->
@@ -84,7 +83,7 @@
             
             <div id="loadingIndicator" class="text-center py-12">
                 <i class="fa-solid fa-circle-notch fa-spin text-3xl text-skyblue mb-3"></i>
-                <p class="text-slate-500 text-sm mt-2">Menghubungkan ke server Firebase...</p>
+                <p class="text-slate-500 text-sm mt-2" id="loadingText">Menghubungkan ke server Firebase...</p>
             </div>
 
             <div id="emptyState" class="hidden text-center py-12 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50">
@@ -92,36 +91,28 @@
                 <p class="text-slate-500 text-sm">Belum ada dokumen yang tersedia.</p>
             </div>
 
-            <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
-        </div>
-
-        <!-- Modal Konfirmasi Hapus Custom (Anti Blokir) -->
-        <div id="deleteModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl transform transition-all">
-                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-4 mx-auto">
-                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-                </div>
-                <h3 class="text-lg font-bold text-navy text-center mb-2">Hapus Permanen?</h3>
-                <p class="text-sm text-slate-500 text-center mb-6">File fisik di awan dan catatan database ini akan dimusnahkan. Tindakan ini tidak dapat dibatalkan.</p>
-                <div class="flex gap-3">
-                    <button id="cancelDeleteBtn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-sm transition-colors">Batal</button>
-                    <button id="confirmDeleteBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-sm shadow-red-500/30">Ya, Hapus</button>
-                </div>
+            <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden">
+                <!-- Data file akan di-render di sini oleh JavaScript -->
             </div>
         </div>
     </main>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK (Tipe Module) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Deteksi apakah sedang berada di dalam lingkungan pratinjau (Canvas)
+        const isCanvasPreview = typeof __firebase_config !== 'undefined';
+        
         // =========================================================================
-        const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwo0MMVemeR9uIDxnryDHp-ghihBJcKbTYPgR7rG462ha6lrsKddXon0FXxmi2UZvH2/exec";
+        // KREDENSIAL CLOUDINARY ANDA (SUDAH AKTIF)
+        // =========================================================================
+        const CLOUDINARY_CLOUD_NAME = "dinhwfi8q"; 
+        const CLOUDINARY_UPLOAD_PRESET = "sehati_preset"; 
         // =========================================================================
 
-        const isCanvasPreview = typeof __firebase_config !== 'undefined';
         const manualFirebaseConfig = {
             apiKey: "AIzaSyAmFgLKiAkUF2ecChNyo8MQKlJOICscuRI",
             authDomain: "sehati-dokumen.firebaseapp.com",
@@ -131,70 +122,87 @@
             appId: "1:70559357101:web:8c6cc9b3e11b7fc51f8e24"
         };
 
+        // Jika di pratinjau, gunakan config sistem. Jika di GitHub, gunakan manualFirebaseConfig.
         const firebaseConfig = isCanvasPreview ? JSON.parse(__firebase_config) : manualFirebaseConfig;
+
+        // Inisialisasi Firebase & Auth
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const collectionPath = "shared_documents";
 
-        // PENTING: Untuk keperluan tes, jika gagal mengambil session, otomatis dianggap Dinkes
-        const role = sessionStorage.getItem('kategori') || 'Dinkes'; 
+        // Path koleksi Firebase
+        const appIdStr = typeof __app_id !== 'undefined' ? __app_id : 'demo-sehati';
+        const collectionPath = isCanvasPreview ? `artifacts/${appIdStr}/public/data/shared_documents` : "shared_documents";
+
+        // Ambil data sesi (Dari proses login index.html)
+        const role = sessionStorage.getItem('kategori') || 'Fasyankes'; 
         const unitKerja = sessionStorage.getItem('unitKerja') || 'Admin Kab. Kuningan';
-        const userEmail = sessionStorage.getItem('userEmail') || 'Tamu'; 
         
         document.getElementById('userRoleBadge').innerText = role + ' - ' + unitKerja;
-        
+
+        // Tampilkan fitur upload jika role adalah Dinkes
         if (role === 'Dinkes') {
             document.getElementById('uploadSection').classList.remove('hidden');
         }
 
-        // Fungsi Notifikasi UI (Pengganti Alert)
-        function showNotification(msg, type = 'success') {
-            const box = document.getElementById('alertBox');
-            box.className = `mt-4 p-3 rounded-lg text-sm font-semibold flex items-center gap-2 ${type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`;
-            box.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${msg}`;
-            box.classList.remove('hidden');
-            setTimeout(() => box.classList.add('hidden'), 6000);
-        }
-
+        // --- Logika Firestore dimulai SETELAH autentikasi anonim berhasil ---
         signInAnonymously(auth).then(() => {
+            
             const filesCollection = collection(db, collectionPath);
             const q = query(filesCollection, orderBy("timestamp", "desc"));
             
-            // 1. BACA DATA FIRESTORE
+            // 1. Membaca Data (Realtime)
             onSnapshot(q, (snapshot) => {
                 const listContainer = document.getElementById('fileList');
-                document.getElementById('loadingIndicator').classList.add('hidden');
-                listContainer.innerHTML = ''; 
+                const loading = document.getElementById('loadingIndicator');
+                const empty = document.getElementById('emptyState');
+                
+                loading.classList.add('hidden');
+                listContainer.innerHTML = ''; // Bersihkan list lama
 
                 if (snapshot.empty) {
-                    document.getElementById('emptyState').classList.remove('hidden');
+                    empty.classList.remove('hidden');
                     listContainer.classList.add('hidden');
                     return;
                 }
-                document.getElementById('emptyState').classList.add('hidden');
+
+                empty.classList.add('hidden');
                 listContainer.classList.remove('hidden');
 
                 snapshot.forEach((docSnap) => {
                     const file = docSnap.data();
                     const fileId = docSnap.id;
+                    
                     const dateObj = file.timestamp ? file.timestamp.toDate() : new Date();
                     const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
                     
-                    let sizeStr = file.size ? ((file.size / (1024 * 1024)) > 1 ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : (file.size / 1024).toFixed(1) + ' KB') : "0 KB";
+                    // Format Size yang lebih baik
+                    let sizeStr = "0 KB";
+                    if(file.size) {
+                        const mb = file.size / (1024 * 1024);
+                        if (mb > 1) sizeStr = mb.toFixed(2) + ' MB';
+                        else sizeStr = (file.size / 1024).toFixed(1) + ' KB';
+                    }
 
                     const card = document.createElement('div');
                     card.className = 'group border border-slate-200 bg-white rounded-xl p-4 flex flex-col hover:border-skyblue hover:shadow-md transition-all';
                     
                     let iconClass = 'fa-file text-slate-400';
                     if(file.type.includes('pdf')) iconClass = 'fa-file-pdf text-red-500';
-                    else if(file.type.includes('word') || file.name.includes('.doc')) iconClass = 'fa-file-word text-blue-600';
-                    else if(file.type.includes('excel') || file.name.includes('.xls')) iconClass = 'fa-file-excel text-emerald-500';
                     else if(file.type.includes('image')) iconClass = 'fa-image text-blue-500';
+                    else if(file.type.includes('word') || file.name.includes('.doc') || file.name.includes('.docx')) iconClass = 'fa-file-word text-blue-600';
+                    else if(file.type.includes('excel') || file.name.includes('.xls') || file.name.includes('.xlsx')) iconClass = 'fa-file-excel text-emerald-500';
 
-                    let deleteBtn = role === 'Dinkes' ? `<button onclick="window.inisiasiHapusFile('${fileId}', '${file.public_id || ''}', '${file.resource_type || 'image'}')" class="flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 w-9 h-9 rounded-lg transition-colors border border-red-100" title="Hapus Permanen"><i class="fa-solid fa-trash-can"></i></button>` : '';
+                    let deleteBtn = '';
+                    if (role === 'Dinkes') {
+                        deleteBtn = `<button onclick="window.hapusFile('${fileId}')" class="flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 w-9 h-9 rounded-lg transition-colors border border-red-100" title="Hapus Data"><i class="fa-solid fa-trash-can"></i></button>`;
+                    }
 
-                    let downloadUrl = file.url ? file.url.replace('/upload/', '/upload/fl_attachment/') : '#';
+                    // Menambahkan flag "fl_attachment" pada URL Cloudinary agar file langsung terunduh, bukan terbuka di tab baru.
+                    let downloadUrl = file.url;
+                    if(downloadUrl && downloadUrl.includes('/upload/')) {
+                        downloadUrl = downloadUrl.replace('/upload/', '/upload/fl_attachment/');
+                    }
 
                     card.innerHTML = `
                         <div class="flex items-start gap-3 mb-4">
@@ -207,7 +215,7 @@
                             </div>
                         </div>
                         <div class="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
-                            <a href="${downloadUrl}" target="_blank" class="flex-1 flex items-center justify-center gap-2 bg-skyblue/10 hover:bg-skyblue text-skyblue hover:text-white py-2 rounded-lg text-xs font-bold transition-all border border-skyblue/20">
+                            <a href="${downloadUrl || '#'}" target="_blank" class="flex-1 flex items-center justify-center gap-2 bg-skyblue/10 hover:bg-skyblue text-skyblue hover:text-white py-2 rounded-lg text-xs font-bold transition-all border border-skyblue/20">
                                 <i class="fa-solid fa-download"></i> Unduh File
                             </a>
                             ${deleteBtn}
@@ -216,174 +224,121 @@
                     listContainer.appendChild(card);
                 });
             }, (error) => {
-                document.getElementById('loadingIndicator').classList.add('hidden');
-                showNotification("Gagal memuat dokumen, pastikan rules Firebase sudah benar: " + error.message, "error");
+                console.error("Firestore Permission Error:", error);
+                document.getElementById('loadingIndicator').innerHTML = `<p class="text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Gagal memuat data.</p><p class="text-xs text-slate-500 mt-2">Pastikan aturan Firestore Anda mengizinkan proses baca/tulis.</p>`;
             });
 
-            // 2. UNGGAH AMAN (DENGAN TANDA TANGAN GAS - SUDAH DIPERBAIKI)
-            document.getElementById('btnUpload').addEventListener('click', async () => {
+            // 2. Logika Upload File Menggunakan API Cloudinary
+            document.getElementById('btnUpload').addEventListener('click', () => {
                 const fileInput = document.getElementById('fileInput');
                 const file = fileInput.files[0];
+                const status = document.getElementById('uploadStatus');
+                const error = document.getElementById('uploadError');
+                const btn = document.getElementById('btnUpload');
                 
-                if(!GAS_BACKEND_URL.startsWith("https://script.google.com/")) {
-                    showNotification("URL Backend GAS belum diatur!", "error"); return;
-                }
-                if (!file) {
-                    showNotification("Pilih file terlebih dahulu!", "error"); return;
-                }
-
-                const overlay = document.getElementById('uploadOverlay');
                 const progressContainer = document.getElementById('progressContainer');
                 const progressBar = document.getElementById('progressBar');
                 const progressText = document.getElementById('progressText');
-                const btn = document.getElementById('btnUpload');
 
+                if (!file) return alert("Pilih file terlebih dahulu!");
+
+                // Persiapan UI
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
                 btn.disabled = true;
-                overlay.classList.remove('hidden');
+                status.classList.add('hidden');
+                error.classList.add('hidden');
+                
+                progressContainer.classList.remove('hidden');
+                progressBar.style.width = '0%';
+                progressText.innerText = '0%';
 
-                try {
-                    // PENTING: Penambahan redirect: 'follow' dan headers text/plain
-                    const authRes = await fetch(GAS_BACKEND_URL, {
-                        method: 'POST',
-                        redirect: 'follow', 
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8", 
-                        },
-                        body: JSON.stringify({ 
-                            action: 'getSignature', 
-                            userEmail: userEmail,
-                            userRole: role 
-                        })
-                    });
-                    
-                    const authData = await authRes.json();
+                // Membuat Form Data untuk Cloudinary
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-                    if (!authData.success) {
-                        throw new Error(authData.message); 
+                // Menggunakan XMLHttpRequest (XHR) agar kita bisa melihat Progress persentase
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, true);
+
+                // Event ketika proses unggah berjalan
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percentComplete + '%';
+                        progressText.innerText = percentComplete + '%';
+                    }
+                };
+
+                // Event ketika proses unggah selesai (sukses atau gagal)
+                xhr.onload = async () => {
+                    if (xhr.status === 200) {
+                        // SUKSES UPLOAD KE CLOUDINARY
+                        const response = JSON.parse(xhr.responseText);
+                        const fileUrl = response.secure_url;
+                        
+                        try {
+                            // Setelah sukses, simpan URL ke Database Firestore
+                            await addDoc(filesCollection, {
+                                name: file.name,
+                                type: file.type || 'unknown',
+                                size: file.size,
+                                url: fileUrl, // <--- Ini yang penting, menyimpan URL asli Cloudinary
+                                uploaderRole: role,
+                                timestamp: serverTimestamp()
+                            });
+                            
+                            fileInput.value = ''; 
+                            status.classList.remove('hidden');
+                            setTimeout(() => status.classList.add('hidden'), 4000);
+                        } catch (err) {
+                            console.error("Gagal simpan ke database:", err);
+                            error.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Gagal menyimpan data ke Firestore.`;
+                            error.classList.remove('hidden');
+                        }
+
+                    } else {
+                        // GAGAL UPLOAD
+                        console.error("Cloudinary Error:", xhr.responseText);
+                        error.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Gagal mengunggah file ke Cloudinary.`;
+                        error.classList.remove('hidden');
                     }
 
-                    overlay.classList.add('hidden'); 
-                    progressContainer.classList.remove('hidden');
-                    progressBar.style.width = '0%';
-
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('api_key', authData.apiKey);
-                    formData.append('timestamp', authData.timestamp);
-                    formData.append('signature', authData.signature);
-
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', `https://api.cloudinary.com/v1_1/${authData.cloudName}/auto/upload`, true);
-
-                    xhr.upload.onprogress = (e) => {
-                        if (e.lengthComputable) {
-                            const percent = Math.round((e.loaded / e.total) * 100);
-                            progressBar.style.width = percent + '%';
-                            progressText.innerText = percent + '%';
-                        }
-                    };
-
-                    xhr.onload = async () => {
-                        if (xhr.status === 200) {
-                            const response = JSON.parse(xhr.responseText);
-                            
-                            try {
-                                await addDoc(filesCollection, {
-                                    name: file.name,
-                                    type: file.type || 'unknown',
-                                    size: file.size,
-                                    url: response.secure_url,
-                                    public_id: response.public_id, 
-                                    resource_type: response.resource_type, 
-                                    uploaderRole: role,
-                                    uploaderEmail: userEmail,
-                                    timestamp: serverTimestamp()
-                                });
-                                fileInput.value = ''; 
-                                showNotification("File berhasil diunggah dengan aman!", "success");
-                            } catch (err) {
-                                showNotification("Gagal menyimpan ke Firestore.", "error");
-                            }
-                        } else {
-                            showNotification("Gagal mengunggah ke brankas Cloudinary.", "error");
-                        }
-                        resetUI();
-                    };
-
-                    xhr.onerror = () => {
-                        showNotification("Koneksi internet terputus.", "error");
-                        resetUI();
-                    };
-
-                    xhr.send(formData);
-
-                } catch (error) {
-                    overlay.classList.add('hidden');
-                    resetUI();
-                    showNotification(error.message, "error");
-                }
-
-                function resetUI() {
+                    // Reset UI
+                    btn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah File';
                     btn.disabled = false;
-                    setTimeout(() => progressContainer.classList.add('hidden'), 2000);
-                }
+                    setTimeout(() => progressContainer.classList.add('hidden'), 1000);
+                };
+
+                // Event jika internet terputus
+                xhr.onerror = () => {
+                    error.innerHTML = `<i class="fa-solid fa-wifi"></i> Koneksi internet terputus saat mengunggah.`;
+                    error.classList.remove('hidden');
+                    btn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah File';
+                    btn.disabled = false;
+                    progressContainer.classList.add('hidden');
+                };
+
+                // Mulai Kirim
+                xhr.send(formData);
             });
 
-            // 3. HAPUS AMAN MENGGUNAKAN MODAL CUSTOM
-            let dataAkanDihapus = null;
-
-            window.inisiasiHapusFile = (firestoreId, publicId, resourceType) => {
-                dataAkanDihapus = { firestoreId, publicId, resourceType };
-                document.getElementById('deleteModal').classList.remove('hidden');
+            // 3. Logika Hapus (Hanya menghapus data dari Firestore)
+            window.hapusFile = async (id) => {
+                if(confirm("Apakah Anda yakin ingin menghapus data dokumen ini dari daftar?")) {
+                    try {
+                        await deleteDoc(doc(db, collectionPath, id));
+                    } catch(err) {
+                        alert("Gagal menghapus file: " + err.message);
+                    }
+                }
             };
 
-            document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
-                dataAkanDihapus = null;
-                document.getElementById('deleteModal').classList.add('hidden');
-            });
+        }).catch((authError) => {
+            console.error("Auth Error:", authError);
+            document.getElementById('loadingIndicator').innerHTML = `<p class="text-red-500"><i class="fa-solid fa-triangle-exclamation"></i> Gagal terhubung ke sistem autentikasi.</p>`;
+        });
 
-            document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
-                if(!dataAkanDihapus) return;
-                
-                const { firestoreId, publicId, resourceType } = dataAkanDihapus;
-                document.getElementById('deleteModal').classList.add('hidden'); 
-                
-                try {
-                    if (publicId) { 
-                        // PENTING: Penambahan redirect: 'follow' dan headers text/plain
-                        const gasRes = await fetch(GAS_BACKEND_URL, {
-                            method: 'POST',
-                            redirect: 'follow', 
-                            headers: {
-                                "Content-Type": "text/plain;charset=utf-8",
-                            },
-                            body: JSON.stringify({ 
-                                action: 'deleteFile', 
-                                userEmail: userEmail,
-                                userRole: role,
-                                publicId: publicId,
-                                resourceType: resourceType
-                            })
-                        });
-                        const gasData = await gasRes.json();
-                        
-                        if(!gasData.success) {
-                            showNotification("Gagal Menghapus: " + gasData.message, "error");
-                            return; 
-                        }
-                    }
-
-                    await deleteDoc(doc(db, collectionPath, firestoreId));
-                    showNotification("Data dan file fisik berhasil dihapus sepenuhnya.", "success");
-
-                } catch(err) {
-                    showNotification("Kesalahan Sistem: " + err.message, "error");
-                } finally {
-                    dataAkanDihapus = null;
-                }
-            });
-
-        }).catch((err) => console.error("Gagal Autentikasi: ", err));
     </script>
 </body>
 </html>
