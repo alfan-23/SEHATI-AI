@@ -3,14 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pusat Dokumen | SEHATI</title>
+    <title>Inventarisasi Dokumen - SEHATI</title>
     
     <script>
+        // Keamanan: Cek sesi persis seperti di dashboard
         (function() {
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
-            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "";
-            if (!isLoggedIn && !isLocal) {
-                // window.location.href = 'index.html'; // Aktifkan di produksi
+            const kategori = sessionStorage.getItem('kategori');
+            const currentDomain = window.location.hostname;
+            
+            const isLocal = currentDomain === "localhost" || currentDomain === "127.0.0.1" || currentDomain === "";
+            const isCanvasPreview = window.self !== window.top || currentDomain.includes("google") || currentDomain.includes("sandbox");
+            
+            // Bypass untuk kebutuhan Pratinjau Canvas (Jika Anda sedang melihat ini di Immersive)
+            if (!isLoggedIn && isCanvasPreview) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('kategori', 'Dinkes'); // Default pratinjau
+                sessionStorage.setItem('unitKerja', 'Dinkes Pratinjau (Simulasi)');
+            } else if (!isLoggedIn && !isLocal) {
+                window.location.href = 'index.html'; 
             }
         })();
     </script>
@@ -20,370 +31,376 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
-        tailwind.config = { theme: { extend: { colors: { navy: '#1e293b', skyblue: '#38bdf8' }, fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+        tailwind.config = { 
+            theme: { 
+                extend: { 
+                    colors: { navy: '#0f172a', darkblue: '#1e293b', skyblue: '#38bdf8' }, 
+                    fontFamily: { sans: ['Inter', 'sans-serif'] } 
+                } 
+            } 
+        }
     </script>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col font-sans">
+<body class="bg-navy min-h-screen font-sans text-slate-200 selection:bg-skyblue/30">
 
-    <!-- Navbar -->
-    <header class="bg-navy text-white px-6 py-4 flex items-center justify-between shadow-md sticky top-0 z-50">
-        <div class="flex items-center gap-4">
-            <a href="dashboard.html" class="text-slate-400 hover:text-white transition-colors bg-slate-800 p-2 rounded-lg">
-                <i class="fa-solid fa-arrow-left"></i>
-            </a>
-            <div>
-                <h1 class="font-bold text-lg text-skyblue leading-tight">Pusat Dokumen SEHATI</h1>
-                <p class="text-xs text-slate-400">Akses file dan template akreditasi</p>
+    <nav class="bg-darkblue/80 border-b border-slate-700/80 sticky top-0 z-10 backdrop-blur-md shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-skyblue to-blue-600 p-2.5 rounded-xl shadow-[0_0_15px_rgba(56,189,248,0.3)]">
+                        <i class="fa-solid fa-link text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-white leading-tight flex items-center gap-2">
+                            Inventarisasi Dokumen
+                            <span id="badgeOffline" class="hidden bg-rose-500/20 text-rose-400 text-[9px] px-2 py-0.5 rounded border border-rose-500/30 uppercase tracking-widest">Offline</span>
+                        </h1>
+                        <p class="text-[9px] text-skyblue font-bold uppercase tracking-widest">Portal Referensi Cloud</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex flex-col items-end mr-2">
+                        <span id="userNameDisplay" class="text-sm font-bold text-white">Memuat...</span>
+                        <span id="userRoleBadge" class="text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border mt-1 bg-slate-800 text-slate-400 border-slate-600">
+                            Akses: ...
+                        </span>
+                    </div>
+                    <button id="btnDashboard" class="p-2 text-slate-400 hover:bg-skyblue/10 hover:text-skyblue rounded-xl transition-all flex items-center border border-transparent hover:border-skyblue/20">
+                        <i class="fa-solid fa-right-from-bracket rotate-180"></i>
+                        <span class="ml-2 text-xs font-bold uppercase tracking-wider hidden sm:block">Dashboard</span>
+                    </button>
+                </div>
             </div>
         </div>
-        <div class="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full font-bold border border-slate-700 flex items-center gap-2">
-            <i class="fa-solid fa-user"></i> <span id="userRoleBadge">Loading...</span>
-        </div>
-    </header>
+    </nav>
 
-    <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8 relative">
-        
-        <!-- Area Upload (Hanya untuk Dinkes) -->
-        <div id="uploadSection" class="hidden mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-            <!-- Overlay Verifikasi Keamanan -->
-            <div id="uploadOverlay" class="hidden absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-                <i class="fa-solid fa-shield-halved text-4xl text-skyblue mb-3 animate-pulse"></i>
-                <p class="font-bold text-navy text-sm">Memverifikasi Otorisasi Admin di Server...</p>
-                <p class="text-xs text-slate-500 mt-1">Meminta tanda tangan enkripsi file</p>
-            </div>
-
-            <h2 class="text-lg font-bold text-navy mb-4 border-b pb-2"><i class="fa-solid fa-cloud-arrow-up text-skyblue mr-2"></i> Unggah Dokumen Baru (Admin)</h2>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="mainGrid" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <div class="flex flex-col md:flex-row gap-4 items-end">
-                <div class="flex-1 w-full">
-                    <label class="block text-xs font-semibold text-slate-500 mb-2">Pilih File (Tanpa batas ukuran)</label>
-                    <input type="file" id="fileInput" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-skyblue/10 file:text-skyblue hover:file:bg-skyblue/20 cursor-pointer border border-slate-200 rounded-xl p-1 bg-slate-50">
+            <!-- PANEL KIRI: FORM UPLOAD (Default Hidden, Dihidupkan via JS jika Dinkes/Admin) -->
+            <div id="uploadPanel" class="hidden lg:col-span-1">
+                <div class="bg-darkblue/60 backdrop-blur-md p-6 rounded-2xl border border-slate-700/50 mb-6 shadow-xl relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-skyblue/10 rounded-full blur-2xl pointer-events-none"></div>
+                    
+                    <div class="flex items-center mb-5 pb-4 border-b border-slate-700/80">
+                        <i class="fa-solid fa-circle-plus text-skyblue text-lg mr-3"></i>
+                        <h2 class="text-base font-bold text-white">Tambahkan Tautan</h2>
+                    </div>
+                    
+                    <div id="alertBox" class="hidden bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl mb-5 flex items-center text-xs">
+                        <i class="fa-solid fa-circle-exclamation mr-2 text-sm"></i>
+                        <span id="alertText">Error message</span>
+                    </div>
+
+                    <form id="uploadForm" class="space-y-5">
+                        <!-- Grup Input Penamaan -->
+                        <div class="space-y-1.5 relative">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                                Penamaan File Referensi
+                            </label>
+                            
+                            <div class="relative">
+                                <input type="text" id="inputDocName" placeholder="Ketik nama dokumen (contoh: Pedoman Kemenkes 2026)..." class="w-full bg-navy/80 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-skyblue transition-all" required>
+                            </div>
+
+                            <p class="text-[9px] text-slate-500 mt-1 ml-1 items-center">
+                                <i class="fa-solid fa-info-circle mr-1"></i> Tentukan nama yang jelas agar mudah dicari fasyankes.
+                            </p>
+                        </div>
+
+                        <!-- Grup Input Link GDrive -->
+                        <div class="space-y-1.5 relative">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                                Tautan Google Drive
+                            </label>
+                            <input type="url" id="inputLink" placeholder="https://drive.google.com/file/d/..." class="w-full bg-navy/80 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-skyblue transition-all">
+                        </div>
+
+                        <button type="submit" id="btnSubmit" class="w-full bg-skyblue/10 text-skyblue border border-skyblue/30 hover:bg-skyblue hover:text-navy hover:border-skyblue hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] px-6 py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-2 group mt-2">
+                            <i class="fa-solid fa-cloud-arrow-up group-hover:-translate-y-0.5 transition-transform"></i>
+                            <span id="btnSubmitText">Simpan ke Cloud</span>
+                        </button>
+                    </form>
                 </div>
-                <button id="btnUpload" class="w-full md:w-auto bg-navy hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-upload"></i> Unggah File
-                </button>
-            </div>
-            
-            <div id="progressContainer" class="hidden w-full mt-4">
-                <div class="flex justify-between text-xs font-bold text-slate-500 mb-1">
-                    <span id="progressLabel">Sedang mengunggah ke brankas awan...</span>
-                    <span id="progressText" class="text-skyblue">0%</span>
-                </div>
-                <div class="w-full bg-slate-100 rounded-full h-2.5 border border-slate-200 overflow-hidden">
-                    <div id="progressBar" class="bg-skyblue h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                
+                <div class="bg-blue-900/20 border border-blue-500/30 p-5 rounded-2xl">
+                    <h3 class="text-[10px] font-bold text-blue-400 uppercase tracking-[0.1em] mb-2 flex items-center">
+                        <i class="fa-solid fa-shield-halved mr-2"></i> Database Firebase Aktif
+                    </h3>
+                    <p class="text-[11px] text-blue-200/70 leading-relaxed">
+                        Data tersimpan permanen di cloud. Pastikan dokumen Google Drive Anda telah diatur aksesnya ke <b>"Siapa saja yang memiliki link"</b> sebelum dibagikan.
+                    </p>
                 </div>
             </div>
 
-            <!-- Pesan Notifikasi -->
-            <div id="alertBox" class="hidden mt-4 p-3 rounded-lg text-sm font-semibold flex items-center gap-2"></div>
-        </div>
+            <!-- PANEL KANAN: TABEL DAFTAR DOKUMEN -->
+            <div id="tablePanel" class="lg:col-span-3">
+                <div class="bg-darkblue/60 backdrop-blur-md rounded-2xl border border-slate-700/50 overflow-hidden shadow-xl">
+                    <div class="p-5 md:p-6 border-b border-slate-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-folder-tree text-slate-400"></i> Repositori Referensi
+                        </h2>
+                        
+                        <div class="relative group">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm group-focus-within:text-skyblue transition-colors"></i>
+                            <input type="text" id="searchInput" placeholder="Cari dokumen..." class="pl-10 pr-4 py-2.5 bg-navy/80 border border-slate-600 rounded-xl text-sm text-white focus:border-skyblue outline-none w-full md:w-64 transition-all">
+                        </div>
+                    </div>
 
-        <!-- Daftar File -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-            <h2 class="text-lg font-bold text-navy mb-6"><i class="fa-solid fa-folder-open text-amber-500 mr-2"></i> Daftar Dokumen Tersedia</h2>
-            
-            <div id="loadingIndicator" class="text-center py-12">
-                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-skyblue mb-3"></i>
-                <p class="text-slate-500 text-sm mt-2">Menghubungkan ke server Firebase...</p>
-            </div>
-
-            <div id="emptyState" class="hidden text-center py-12 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50">
-                <i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3"></i>
-                <p class="text-slate-500 text-sm">Belum ada dokumen yang tersedia.</p>
-            </div>
-
-            <div id="fileList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 hidden"></div>
-        </div>
-
-        <!-- Modal Konfirmasi Hapus Custom (Anti Blokir) -->
-        <div id="deleteModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl transform transition-all">
-                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-500 mb-4 mx-auto">
-                    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+                    <div class="overflow-x-auto min-h-[400px]">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-navy/60 text-slate-400 text-[10px] uppercase tracking-[0.15em] font-bold">
+                                <tr>
+                                    <th class="px-6 py-4 rounded-tl-lg">Nama File (Tautan G-Drive)</th>
+                                    <th class="px-6 py-4 hidden sm:table-cell">Unit / Instansi</th>
+                                    <th class="px-6 py-4">Akses</th>
+                                    <th class="px-6 py-4 hidden md:table-cell">Tanggal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody" class="divide-y divide-slate-700/50">
+                                <!-- Loading State -->
+                                <tr id="rowLoading">
+                                    <td colspan="4" class="px-6 py-16 text-center">
+                                        <div class="flex flex-col items-center justify-center space-y-4">
+                                            <div class="w-10 h-10 border-4 border-slate-700 border-t-skyblue rounded-full animate-spin"></div>
+                                            <span class="text-xs text-skyblue font-bold uppercase tracking-widest animate-pulse">Menghubungkan ke Cloud...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <!-- Baris tabel akan di-render menggunakan JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <h3 class="text-lg font-bold text-navy text-center mb-2">Hapus Permanen?</h3>
-                <p class="text-sm text-slate-500 text-center mb-6">File fisik di awan dan catatan database ini akan dimusnahkan. Tindakan ini tidak dapat dibatalkan.</p>
-                <div class="flex gap-3">
-                    <button id="cancelDeleteBtn" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-sm transition-colors">Batal</button>
-                    <button id="confirmDeleteBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors shadow-sm shadow-red-500/30">Ya, Hapus</button>
-                </div>
             </div>
+
         </div>
     </main>
 
-    <!-- Firebase SDK -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // 1. IMPORT FIREBASE DARI CDN ES MODULES (Tidak perlu npm)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // =========================================================================
-        const GAS_BACKEND_URL = "https://script.google.com/macros/s/AKfycbwo0MMVemeR9uIDxnryDHp-ghihBJcKbTYPgR7rG462ha6lrsKddXon0FXxmi2UZvH2/exec";
-        // =========================================================================
-
-        const isCanvasPreview = typeof __firebase_config !== 'undefined';
-        const manualFirebaseConfig = {
-            apiKey: "AIzaSyAmFgLKiAkUF2ecChNyo8MQKlJOICscuRI",
-            authDomain: "sehati-dokumen.firebaseapp.com",
-            projectId: "sehati-dokumen",
-            storageBucket: "sehati-dokumen.firebasestorage.app",
-            messagingSenderId: "70559357101",
-            appId: "1:70559357101:web:8c6cc9b3e11b7fc51f8e24"
+        // 2. KONFIGURASI FIREBASE ANDA
+        const firebaseConfig = {
+            apiKey: "AIzaSyDlraVPXwrgMRgnk87AE_Ns8aHi4djxQhs",
+            authDomain: "referensi-sehati.firebaseapp.com",
+            projectId: "referensi-sehati",
+            storageBucket: "referensi-sehati.firebasestorage.app",
+            messagingSenderId: "476416992343",
+            appId: "1:476416992343:web:b6d19a8f3ae8039bd4af12"
         };
 
-        const firebaseConfig = isCanvasPreview ? JSON.parse(__firebase_config) : manualFirebaseConfig;
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const collectionPath = "shared_documents";
-
-        // PENTING: Untuk keperluan tes, jika gagal mengambil session, otomatis dianggap Dinkes
-        const role = sessionStorage.getItem('kategori') || 'Dinkes'; 
-        const unitKerja = sessionStorage.getItem('unitKerja') || 'Admin Kab. Kuningan';
-        const userEmail = sessionStorage.getItem('userEmail') || 'Tamu'; 
+        // 3. INISIALISASI VARIABEL GLOBAL
+        let db;
+        let allDocuments = []; // Menyimpan semua data untuk fitur pencarian
         
-        document.getElementById('userRoleBadge').innerText = role + ' - ' + unitKerja;
+        // Ambil data sesi pengguna dari Dashboard
+        const userRole = sessionStorage.getItem('kategori') || 'Tamu';
+        const userName = sessionStorage.getItem('unitKerja') || 'Pengguna Tidak Dikenal';
         
-        if (role === 'Dinkes') {
-            document.getElementById('uploadSection').classList.remove('hidden');
-        }
+        // Tentukan apakah user boleh mengunggah (Dinkes & Admin)
+        const canUpload = userRole === 'Dinkes' || userRole === 'Admin';
 
-        // Fungsi Notifikasi UI (Pengganti Alert)
-        function showNotification(msg, type = 'success') {
-            const box = document.getElementById('alertBox');
-            box.className = `mt-4 p-3 rounded-lg text-sm font-semibold flex items-center gap-2 ${type === 'success' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`;
-            box.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${msg}`;
-            box.classList.remove('hidden');
-            setTimeout(() => box.classList.add('hidden'), 6000);
-        }
-
-        signInAnonymously(auth).then(() => {
-            const filesCollection = collection(db, collectionPath);
-            const q = query(filesCollection, orderBy("timestamp", "desc"));
+        // 4. MENGATUR TAMPILAN BERDASARKAN PERAN (UI LOGIC)
+        document.addEventListener("DOMContentLoaded", () => {
+            // Set identitas header
+            document.getElementById('userNameDisplay').textContent = userName;
+            const badge = document.getElementById('userRoleBadge');
+            badge.textContent = `AKSES: ${userRole}`;
             
-            // 1. BACA DATA FIRESTORE
-            onSnapshot(q, (snapshot) => {
-                const listContainer = document.getElementById('fileList');
-                document.getElementById('loadingIndicator').classList.add('hidden');
-                listContainer.innerHTML = ''; 
+            // Warnai badge sesuai peran
+            if (userRole === 'Dinkes') badge.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border mt-1 bg-amber-500/20 text-amber-500 border-amber-500/30";
+            else if (userRole === 'Puskesmas') badge.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border mt-1 bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
+            else if (userRole === 'Klinik') badge.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border mt-1 bg-sky-500/20 text-sky-400 border-sky-500/30";
+            else if (userRole === 'Rumah Sakit') badge.className = "text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border mt-1 bg-rose-500/20 text-rose-400 border-rose-500/30";
 
-                if (snapshot.empty) {
-                    document.getElementById('emptyState').classList.remove('hidden');
-                    listContainer.classList.add('hidden');
+            // Tombol kembali ke Dashboard
+            document.getElementById('btnDashboard').addEventListener('click', () => {
+                window.location.href = 'dashboard.html'; // Jika beda nama file, sesuaikan.
+            });
+
+            // Atur Layout (Form vs Tabel Full)
+            const uploadPanel = document.getElementById('uploadPanel');
+            const tablePanel = document.getElementById('tablePanel');
+            
+            if (canUpload) {
+                uploadPanel.classList.remove('hidden');
+                tablePanel.className = "lg:col-span-2"; // Tabel mengambil sisa 2 kolom
+            } else {
+                // Fasyankes hanya melihat tabel Full screen
+                uploadPanel.classList.add('hidden');
+                tablePanel.className = "lg:col-span-3";
+            }
+            
+            // Inisialisasi Firebase & Tarik Data
+            initFirebaseAndFetchData();
+        });
+
+        // 5. INISIALISASI FIREBASE DAN MENGAMBIL DATA
+        async function initFirebaseAndFetchData() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                
+                // Ambil data dari koleksi "referensi", urutkan dari yang terbaru
+                const referensiQuery = query(collection(db, "referensi"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(referensiQuery);
+                
+                allDocuments = [];
+                querySnapshot.forEach((doc) => {
+                    allDocuments.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderTable(allDocuments);
+
+            } catch (error) {
+                console.error("Gagal terhubung ke Firebase:", error);
+                document.getElementById('badgeOffline').classList.remove('hidden');
+                document.getElementById('rowLoading').innerHTML = `
+                    <td colspan="4" class="px-6 py-12 text-center text-slate-500">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-500 text-3xl mb-3 opacity-50 block"></i>
+                        Gagal memuat data. Sistem tidak dapat terhubung ke database.
+                    </td>`;
+            }
+        }
+
+        // 6. FUNGSI MERENDER DATA KE DALAM TABEL HTML
+        function renderTable(dataArray) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = ''; // Bersihkan tabel
+            
+            if (dataArray.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center text-slate-500 text-sm">
+                            <i class="fa-solid fa-inbox text-2xl block mb-2 opacity-50"></i>
+                            Belum ada dokumen referensi yang diunggah.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            dataArray.forEach(doc => {
+                // Warna Badge berdasarkan Role pengunggah
+                let badgeClass = "bg-slate-500/20 text-slate-400 border-slate-500/30";
+                if (doc.uploaderRole === 'Dinkes') badgeClass = 'bg-amber-500/20 text-amber-500 border-amber-500/30';
+                else if (doc.uploaderRole === 'Admin') badgeClass = 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+                else if (doc.uploaderRole === 'Puskesmas') badgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                else if (doc.uploaderRole === 'Klinik') badgeClass = 'bg-sky-500/20 text-sky-400 border-sky-500/30';
+
+                // Format Tanggal (Jika ada properti createdAt dari Firestore, gunakan itu, jika tidak pakai properti date string biasa)
+                let displayDate = doc.date || "-";
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-700/30 transition-colors group";
+                
+                tr.innerHTML = `
+                    <td class="px-6 py-4">
+                        <a href="${doc.link}" target="_blank" rel="noopener noreferrer" class="flex items-start md:items-center text-skyblue font-semibold hover:text-white transition-colors">
+                            <i class="fa-solid fa-file-lines text-slate-500 mr-3 mt-1 md:mt-0 group-hover:text-skyblue transition-colors"></i>
+                            <span class="line-clamp-2 pr-2">${doc.name}</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-0 group-hover:opacity-100 transition-opacity ml-auto md:ml-0 flex-shrink-0"></i>
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-slate-300 hidden sm:table-cell">${doc.uploaderName}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border whitespace-nowrap ${badgeClass}">
+                            ${doc.uploaderRole}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500 text-xs hidden md:table-cell whitespace-nowrap">${displayDate}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 7. FUNGSI PENCARIAN (SEARCH BAR)
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredDocs = allDocuments.filter(doc => 
+                doc.name.toLowerCase().includes(searchTerm) || 
+                doc.uploaderName.toLowerCase().includes(searchTerm)
+            );
+            renderTable(filteredDocs);
+        });
+
+        // 8. FUNGSI MENYIMPAN DATA (UPLOAD FORM)
+        if (canUpload) {
+            const form = document.getElementById('uploadForm');
+            const alertBox = document.getElementById('alertBox');
+            const alertText = document.getElementById('alertText');
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                alertBox.classList.add('hidden'); // Sembunyikan error lama
+
+                // Dapatkan nama dokumen dari input teks
+                const docName = document.getElementById('inputDocName').value;
+                const docLink = document.getElementById('inputLink').value;
+
+                // Validasi Frontend
+                if (!docName || docName.trim() === '') {
+                    alertText.textContent = "Silakan isi nama dokumen referensi.";
+                    alertBox.classList.remove('hidden');
                     return;
                 }
-                document.getElementById('emptyState').classList.add('hidden');
-                listContainer.classList.remove('hidden');
-
-                snapshot.forEach((docSnap) => {
-                    const file = docSnap.data();
-                    const fileId = docSnap.id;
-                    const dateObj = file.timestamp ? file.timestamp.toDate() : new Date();
-                    const dateStr = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-                    
-                    let sizeStr = file.size ? ((file.size / (1024 * 1024)) > 1 ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' : (file.size / 1024).toFixed(1) + ' KB') : "0 KB";
-
-                    const card = document.createElement('div');
-                    card.className = 'group border border-slate-200 bg-white rounded-xl p-4 flex flex-col hover:border-skyblue hover:shadow-md transition-all';
-                    
-                    let iconClass = 'fa-file text-slate-400';
-                    if(file.type.includes('pdf')) iconClass = 'fa-file-pdf text-red-500';
-                    else if(file.type.includes('word') || file.name.includes('.doc')) iconClass = 'fa-file-word text-blue-600';
-                    else if(file.type.includes('excel') || file.name.includes('.xls')) iconClass = 'fa-file-excel text-emerald-500';
-                    else if(file.type.includes('image')) iconClass = 'fa-image text-blue-500';
-
-                    let deleteBtn = role === 'Dinkes' ? `<button onclick="window.inisiasiHapusFile('${fileId}', '${file.public_id || ''}', '${file.resource_type || 'image'}')" class="flex items-center justify-center bg-red-50 hover:bg-red-100 text-red-500 w-9 h-9 rounded-lg transition-colors border border-red-100" title="Hapus Permanen"><i class="fa-solid fa-trash-can"></i></button>` : '';
-
-                    let downloadUrl = file.url ? file.url.replace('/upload/', '/upload/fl_attachment/') : '#';
-
-                    card.innerHTML = `
-                        <div class="flex items-start gap-3 mb-4">
-                            <div class="bg-slate-50 w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
-                                <i class="fa-solid ${iconClass} text-xl"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-bold text-navy truncate" title="${file.name}">${file.name}</p>
-                                <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">${sizeStr} • ${dateStr}</p>
-                            </div>
-                        </div>
-                        <div class="mt-auto flex items-center gap-2 pt-3 border-t border-slate-100">
-                            <a href="${downloadUrl}" target="_blank" class="flex-1 flex items-center justify-center gap-2 bg-skyblue/10 hover:bg-skyblue text-skyblue hover:text-white py-2 rounded-lg text-xs font-bold transition-all border border-skyblue/20">
-                                <i class="fa-solid fa-download"></i> Unduh File
-                            </a>
-                            ${deleteBtn}
-                        </div>
-                    `;
-                    listContainer.appendChild(card);
-                });
-            }, (error) => {
-                document.getElementById('loadingIndicator').classList.add('hidden');
-                showNotification("Gagal memuat dokumen, pastikan rules Firebase sudah benar: " + error.message, "error");
-            });
-
-            // 2. UNGGAH AMAN (DENGAN TANDA TANGAN GAS - SUDAH DIPERBAIKI)
-            document.getElementById('btnUpload').addEventListener('click', async () => {
-                const fileInput = document.getElementById('fileInput');
-                const file = fileInput.files[0];
                 
-                if(!GAS_BACKEND_URL.startsWith("https://script.google.com/")) {
-                    showNotification("URL Backend GAS belum diatur!", "error"); return;
-                }
-                if (!file) {
-                    showNotification("Pilih file terlebih dahulu!", "error"); return;
+                if (!docLink.trim() || (!docLink.startsWith('http://') && !docLink.startsWith('https://'))) {
+                    alertText.textContent = "Tautan harus valid dan diawali dengan http:// atau https://";
+                    alertBox.classList.remove('hidden');
+                    return;
                 }
 
-                const overlay = document.getElementById('uploadOverlay');
-                const progressContainer = document.getElementById('progressContainer');
-                const progressBar = document.getElementById('progressBar');
-                const progressText = document.getElementById('progressText');
-                const btn = document.getElementById('btnUpload');
-
-                btn.disabled = true;
-                overlay.classList.remove('hidden');
+                // Ubah status tombol jadi loading
+                const btnSubmit = document.getElementById('btnSubmit');
+                const btnText = document.getElementById('btnSubmitText');
+                const originalIcon = btnSubmit.innerHTML;
+                
+                btnSubmit.disabled = true;
+                btnSubmit.classList.add('opacity-70', 'cursor-not-allowed');
+                btnSubmit.innerHTML = `<div class="w-4 h-4 border-2 border-slate-500 border-t-white rounded-full animate-spin"></div> Menyimpan...`;
 
                 try {
-                    // PENTING: Penambahan redirect: 'follow' dan headers text/plain
-                    const authRes = await fetch(GAS_BACKEND_URL, {
-                        method: 'POST',
-                        redirect: 'follow', 
-                        headers: {
-                            "Content-Type": "text/plain;charset=utf-8", 
-                        },
-                        body: JSON.stringify({ 
-                            action: 'getSignature', 
-                            userEmail: userEmail,
-                            userRole: role 
-                        })
-                    });
+                    // Buat Objek Data
+                    const today = new Date().toISOString().split('T')[0];
+                    const newDoc = {
+                        name: docName,
+                        link: docLink,
+                        uploaderRole: userRole,
+                        uploaderName: userName,
+                        date: today,
+                        createdAt: serverTimestamp() // Waktu dari server Firebase
+                    };
+
+                    // Kirim ke Firebase Firestore
+                    const docRef = await addDoc(collection(db, "referensi"), newDoc);
                     
-                    const authData = await authRes.json();
-
-                    if (!authData.success) {
-                        throw new Error(authData.message); 
-                    }
-
-                    overlay.classList.add('hidden'); 
-                    progressContainer.classList.remove('hidden');
-                    progressBar.style.width = '0%';
-
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('api_key', authData.apiKey);
-                    formData.append('timestamp', authData.timestamp);
-                    formData.append('signature', authData.signature);
-
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', `https://api.cloudinary.com/v1_1/${authData.cloudName}/auto/upload`, true);
-
-                    xhr.upload.onprogress = (e) => {
-                        if (e.lengthComputable) {
-                            const percent = Math.round((e.loaded / e.total) * 100);
-                            progressBar.style.width = percent + '%';
-                            progressText.innerText = percent + '%';
-                        }
-                    };
-
-                    xhr.onload = async () => {
-                        if (xhr.status === 200) {
-                            const response = JSON.parse(xhr.responseText);
-                            
-                            try {
-                                await addDoc(filesCollection, {
-                                    name: file.name,
-                                    type: file.type || 'unknown',
-                                    size: file.size,
-                                    url: response.secure_url,
-                                    public_id: response.public_id, 
-                                    resource_type: response.resource_type, 
-                                    uploaderRole: role,
-                                    uploaderEmail: userEmail,
-                                    timestamp: serverTimestamp()
-                                });
-                                fileInput.value = ''; 
-                                showNotification("File berhasil diunggah dengan aman!", "success");
-                            } catch (err) {
-                                showNotification("Gagal menyimpan ke Firestore.", "error");
-                            }
-                        } else {
-                            showNotification("Gagal mengunggah ke brankas Cloudinary.", "error");
-                        }
-                        resetUI();
-                    };
-
-                    xhr.onerror = () => {
-                        showNotification("Koneksi internet terputus.", "error");
-                        resetUI();
-                    };
-
-                    xhr.send(formData);
+                    // Tambahkan ke array lokal (di atas) agar tabel langsung update tanpa refresh
+                    const newDocToDisplay = { id: docRef.id, ...newDoc, createdAt: new Date() };
+                    allDocuments.unshift(newDocToDisplay); // Taruh di urutan pertama
+                    
+                    // Render ulang tabel
+                    renderTable(allDocuments);
+                    
+                    // Reset Form
+                    document.getElementById('inputDocName').value = "";
+                    document.getElementById('inputLink').value = "";
 
                 } catch (error) {
-                    overlay.classList.add('hidden');
-                    resetUI();
-                    showNotification(error.message, "error");
-                }
-
-                function resetUI() {
-                    btn.disabled = false;
-                    setTimeout(() => progressContainer.classList.add('hidden'), 2000);
-                }
-            });
-
-            // 3. HAPUS AMAN MENGGUNAKAN MODAL CUSTOM
-            let dataAkanDihapus = null;
-
-            window.inisiasiHapusFile = (firestoreId, publicId, resourceType) => {
-                dataAkanDihapus = { firestoreId, publicId, resourceType };
-                document.getElementById('deleteModal').classList.remove('hidden');
-            };
-
-            document.getElementById('cancelDeleteBtn').addEventListener('click', () => {
-                dataAkanDihapus = null;
-                document.getElementById('deleteModal').classList.add('hidden');
-            });
-
-            document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
-                if(!dataAkanDihapus) return;
-                
-                const { firestoreId, publicId, resourceType } = dataAkanDihapus;
-                document.getElementById('deleteModal').classList.add('hidden'); 
-                
-                try {
-                    if (publicId) { 
-                        // PENTING: Penambahan redirect: 'follow' dan headers text/plain
-                        const gasRes = await fetch(GAS_BACKEND_URL, {
-                            method: 'POST',
-                            redirect: 'follow', 
-                            headers: {
-                                "Content-Type": "text/plain;charset=utf-8",
-                            },
-                            body: JSON.stringify({ 
-                                action: 'deleteFile', 
-                                userEmail: userEmail,
-                                userRole: role,
-                                publicId: publicId,
-                                resourceType: resourceType
-                            })
-                        });
-                        const gasData = await gasRes.json();
-                        
-                        if(!gasData.success) {
-                            showNotification("Gagal Menghapus: " + gasData.message, "error");
-                            return; 
-                        }
-                    }
-
-                    await deleteDoc(doc(db, collectionPath, firestoreId));
-                    showNotification("Data dan file fisik berhasil dihapus sepenuhnya.", "success");
-
-                } catch(err) {
-                    showNotification("Kesalahan Sistem: " + err.message, "error");
+                    console.error("Gagal menambah dokumen: ", error);
+                    alertText.textContent = "Terjadi kesalahan sistem. Pastikan koneksi internet Anda stabil.";
+                    alertBox.classList.remove('hidden');
                 } finally {
-                    dataAkanDihapus = null;
+                    // Kembalikan status tombol
+                    btnSubmit.disabled = false;
+                    btnSubmit.classList.remove('opacity-70', 'cursor-not-allowed');
+                    btnSubmit.innerHTML = `<i class="fa-solid fa-cloud-arrow-up group-hover:-translate-y-0.5 transition-transform"></i> <span id="btnSubmitText">Simpan ke Cloud</span>`;
                 }
             });
-
-        }).catch((err) => console.error("Gagal Autentikasi: ", err));
+        }
     </script>
 </body>
 </html>
