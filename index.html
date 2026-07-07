@@ -8,8 +8,11 @@
     <script>
         // Sistem Keamanan Lisensi Domain
         (function() {
+            // PERBAIKAN: Gunakan huruf kecil semua untuk domain patokan (Tetap menggunakan akun alfan-23)
             const allowedDomain = "alfan-23.github.io";
-            const currentDomain = window.location.hostname;
+            
+            // PERBAIKAN: Paksa URL yang terbaca dari browser menjadi huruf kecil
+            const currentDomain = window.location.hostname.toLowerCase();
             
             // Bypass untuk localhost dan lingkungan pratinjau
             const isLocal = currentDomain === "localhost" || currentDomain === "127.0.0.1" || currentDomain === "";
@@ -213,8 +216,8 @@
     </div>
 
     <script>
-        // URL API dari Google Apps Script Anda
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbyqV3Q8K4RJbTS_CK8U1XTzLjC-cIZc95oaRRO5hAZElGEm-DG5YAvbhf0RhgdLo3je/exec";
+        // URL API dari Google Apps Script (Diperbarui mengikuti index.html terbaru)
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbyz0WCr1nW8aH_ExPZnFvbxvUZt65PpDAf8L7pdb4j2KE8eKkV3cOAZcePbuboMK31T/exec";
 
         // Fungsi Tampilkan/Sembunyikan Password
         function togglePassword(inputId, iconId) {
@@ -279,6 +282,15 @@
                     // Simpan email agar dikenali oleh Dashboard untuk otorisasi Panel Persetujuan
                     sessionStorage.setItem('userEmail', cleanEmail);
                     localStorage.setItem('userEmail', cleanEmail); 
+
+                    // --- TAMBAHAN BARU: Menerima URL Drive dari Server Pusat ---
+                    if (result.driveUrl && result.driveUrl !== "") {
+                        sessionStorage.setItem('gasUrl', result.driveUrl);
+                    } else {
+                        // Jika server tidak mengirim URL, pastikan tidak ada sisa URL lama di sesi ini
+                        sessionStorage.removeItem('gasUrl'); 
+                    }
+                    // -----------------------------------------------------------
                     
                     // Arahkan ke halaman Dashboard
                     window.location.href = 'dashboard.html';

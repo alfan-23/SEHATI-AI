@@ -12,12 +12,24 @@
     <script>
         // Pengecekan Keamanan (Bypass untuk Canvas/Localhost)
         (function() {
+            let isCanvasPreview = false;
+            try {
+                isCanvasPreview = window.self !== window.top || window.location.hostname.includes("google") || window.location.hostname.includes("sandbox");
+            } catch(e) {
+                isCanvasPreview = true;
+            }
+
             const isLoggedIn = sessionStorage.getItem('isLoggedIn');
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" || window.location.hostname === "";
-            const isCanvasPreview = window.self !== window.top || window.location.hostname.includes("google") || window.location.hostname.includes("sandbox");
             
-            if (!isLoggedIn && !isLocal && !isCanvasPreview) {
-                window.location.href = 'index.html'; 
+            // BYPASS KHUSUS PREVIEW CANVAS
+            if (!isLoggedIn) {
+                if (isCanvasPreview || isLocal) {
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    sessionStorage.setItem('userEmail', 'demo@fasyankes.id'); 
+                    sessionStorage.setItem('unitKerja', 'Puskesmas Demo Canvas');
+                    sessionStorage.setItem('kategori', 'Puskesmas');
+                }
             }
         })();
 
@@ -27,7 +39,7 @@
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         navy: '#0f172a',
-                        primary: '#0f766e', /* teal-700 untuk Puskesmas */
+                        primary: '#0f766e', 
                         drive: '#1fa463'
                     }
                 }
@@ -43,7 +55,7 @@
             transition: max-height 0.4s ease-out, padding 0.4s ease;
         }
         .accordion-content.open {
-            max-height: 15000px; /* Diperbesar agar cukup menampung kriteria Puskesmas yang panjang */
+            max-height: 15000px; 
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
@@ -63,12 +75,12 @@
             </div>
             <div>
                 <h1 class="font-bold text-navy text-lg leading-tight">Manajemen Dokumen Akreditasi Puskesmas</h1>
-                <p id="headerSubtitle" class="text-xs text-slate-500">Terintegrasi dengan Google Drive Folder Otomatis</p>
+                <p id="headerSubtitle" class="text-xs text-slate-500">Terintegrasi dengan Google Drive Secara Permanen</p>
             </div>
         </div>
         
         <div class="flex items-center gap-3">
-            <a href="dashboard.html" class="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition">
+            <a href="#" class="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition">
                 <i class="fa-solid fa-arrow-left"></i> Kembali
             </a>
             <button onclick="openSetupModal()" class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-700 transition shadow-md">
@@ -83,9 +95,8 @@
             <div class="bg-teal-50 border border-teal-200 text-teal-800 p-4 rounded-xl mb-6 flex items-start gap-3 shadow-sm">
                 <i class="fa-solid fa-circle-info text-teal-600 mt-0.5"></i>
                 <div class="text-sm">
-                    <p class="font-semibold mb-1">Fokus Fasyankes & Penamaan Cerdas Otomatis</p>
-                    <p>Sistem difilter untuk fasyankes: mengunggah dokumen bukti <b>(R, D, O)</b>. Wawancara (W) dan Simulasi (S) tidak memerlukan dokumen. Apapun nama asli file Anda, sistem akan membuangnya dan menamai ulang secara otomatis menjadi:<br>
-                    <b class="text-teal-900 bg-teal-100/50 px-2 py-0.5 rounded font-mono text-xs mt-1 inline-block border border-teal-200">EP [Kode] - R/D/O (Jenis Bukti) - Konsep Judul EP.pdf</b></p>
+                    <p class="font-semibold mb-1">Fokus Peran & Penamaan Cerdas Otomatis</p>
+                    <p id="infoTextRole">Menginisialisasi pengaturan akses berdasarkan peran...</p>
                 </div>
             </div>
 
@@ -104,7 +115,6 @@
         <span id="toastMessage">Pesan Notifikasi</span>
     </div>
 
-    <!-- Modal Setup Google Drive -->
     <div id="setupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
         <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="setupModalContent">
             <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
@@ -119,8 +129,8 @@
             <div class="p-6 overflow-y-auto text-sm text-slate-600 space-y-5">
                 
                 <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r text-amber-900 shadow-sm">
-                    <h4 class="font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-laptop-medical text-amber-600"></i> Buka di Komputer / HP Lain?</h4>
-                    <p class="text-xs">Jika Anda membuka aplikasi ini di perangkat lain, setelan ini <b>tidak terbawa otomatis</b>. Anda <b class="underline">TIDAK PERLU</b> membuat Script baru. Cukup tempel (paste) URL yang sudah Anda salin sebelumnya langsung ke kotak Hijau di bawah ini lalu Simpan.</p>
+                    <h4 class="font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-amber-600"></i> Disimpan Permanen di Akun Anda</h4>
+                    <p class="text-xs">URL Script yang Anda masukkan di bawah ini akan <b>disimpan permanen ke dalam database akun Anda</b>. Jika Anda login di Komputer / HP lain dengan akun email yang sama, Anda <b>TIDAK PERLU</b> melakukan setup ulang. Sistem akan menarik URL tersebut secara otomatis.</p>
                 </div>
 
                 <div class="space-y-2">
@@ -136,14 +146,31 @@
                     <button onclick="copyScriptCode()" class="absolute top-2 right-2 bg-slate-700 text-white text-xs px-3 py-1.5 rounded-md hover:bg-slate-600 transition opacity-0 group-hover:opacity-100 focus:opacity-100 shadow-md">
                         <i class="fa-regular fa-copy"></i> Copy Code
                     </button>
+                    <!-- KODE GOOGLE DRIVE ANTI-CRASH -->
                     <pre id="gasScriptCode" class="bg-slate-800 text-green-400 p-4 rounded-xl overflow-x-auto text-xs font-mono border border-slate-700">
 function doPost(e) {
+  var headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type"
+  };
+
   try {
+    if (!e || !e.postData || !e.postData.contents) {
+      return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Data file tidak diterima server." }))
+        .setMimeType(ContentService.MimeType.JSON).setHeaders(headers);
+    }
+
     var data = JSON.parse(e.postData.contents);
+    if (!data.fileBase64) {
+       return ContentService.createTextOutput(JSON.stringify({ success: false, error: "File Base64 kosong atau gagal diproses." }))
+        .setMimeType(ContentService.MimeType.JSON).setHeaders(headers);
+    }
+
     var fileData = data.fileBase64;
-    var fileName = data.fileName;
-    var mimeType = data.mimeType;
-    var folderPath = data.folderPath;
+    var fileName = data.fileName || "Dokumen_Tanpa_Nama.pdf";
+    var mimeType = data.mimeType || "application/pdf";
+    var folderPath = data.folderPath || "SEHATI_Uploads";
 
     var decodedFile = Utilities.base64Decode(fileData.split(',')[1]);
     var blob = Utilities.newBlob(decodedFile, mimeType, fileName);
@@ -169,13 +196,13 @@ function doPost(e) {
       success: true,
       url: file.getUrl(),
       fileName: file.getName()
-    })).setMimeType(ContentService.MimeType.JSON);
+    })).setMimeType(ContentService.MimeType.JSON).setHeaders(headers);
 
   } catch(error) {
     return ContentService.createTextOutput(JSON.stringify({
       success: false,
-      error: error.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+      error: "CRASH SCRIPT DRIVE: " + error.toString()
+    })).setMimeType(ContentService.MimeType.JSON).setHeaders(headers);
   }
 }
 
@@ -223,30 +250,46 @@ function doOptions(e) {
                     </ul>
                 </div>
 
+                <!-- FORM INPUT URL DRIVE -->
                 <div class="mt-5 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
                     <label class="block text-xs font-bold text-emerald-800 uppercase mb-1">Tempel Web App URL Anda di sini:</label>
                     <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" class="w-full px-3 py-2 border border-emerald-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm font-mono">
-                    <button onclick="saveGasUrl()" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg hover:bg-emerald-700 transition shadow-md">Simpan URL & Hubungkan</button>
+                    <button id="btnSaveGas" onclick="saveGasUrl(event)" class="mt-3 w-full bg-emerald-600 text-white font-medium py-2 rounded-lg hover:bg-emerald-700 transition shadow-md">
+                        Simpan Permanen ke Database Akun
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Cek Nama Fasyankes dari sesi index.html
-        const currentUnitKerja = sessionStorage.getItem('unitKerja') || 'Puskesmas_Default';
-        const STORAGE_KEY_GAS = `SEHATI_GAS_URL_${currentUnitKerja.replace(/\s+/g, '_')}`;
         
-        let GAS_WEB_APP_URL = localStorage.getItem(STORAGE_KEY_GAS) || ''; 
+        // API Database Pusat (URL TELAH DIPERBARUI)
+        const CENTRAL_GAS_URL = "https://script.google.com/macros/s/AKfycbyz0WCr1nW8aH_ExPZnFvbxvUZt65PpDAf8L7pdb4j2KE8eKkV3cOAZcePbuboMK31T/exec";
+
+        // Identitas User
+        const currentUnitKerja = sessionStorage.getItem('unitKerja') || 'Puskesmas_Default';
+        const currentUserEmail = sessionStorage.getItem('userEmail') || 'user_default';
+        const currentKategori = sessionStorage.getItem('kategori') || 'Puskesmas'; 
+        
+        // URL ditarik dari hasil login server
+        let GAS_WEB_APP_URL = sessionStorage.getItem('gasUrl') || ''; 
 
         window.addEventListener('DOMContentLoaded', () => {
             const subtitle = document.getElementById('headerSubtitle');
             if(sessionStorage.getItem('unitKerja')) {
-                subtitle.innerHTML = `Terintegrasi dengan Google Drive Akun <b>${currentUnitKerja}</b>`;
+                subtitle.innerHTML = `Area Kerja: <b>${currentUnitKerja}</b> | Akun Terotorisasi: <span class="text-teal-600 font-semibold">${currentUserEmail}</span>`;
+            }
+            renderExplorerContent();
+
+            if(!GAS_WEB_APP_URL) {
+                setTimeout(() => {
+                    showToast('Klik "Setup Drive" untuk menghubungkan & menyimpan URL ke database.', 'loading');
+                    setTimeout(hideToast, 4000);
+                }, 1000);
             }
         });
 
-        // Data Akreditasi Puskesmas 100% LENGKAP (Bab 1 - 5)
         const rawData = {
             "BAB1": {
                 title: "BAB I: KEPEMIMPINAN DAN MANAJEMEN PUSKESMAS (KMP)", icon: "🏛️", color: "sky",
@@ -269,7 +312,7 @@ function doOptions(e) {
                         ]}
                     ]},
                     { id: "Standar 1.2", title: "Tata kelola organisasi.", kriteriaList: [
-                        { id: "Kriteria 1.2.1", title: "Struktur organisasi ditetapkan dengan kejelasan tugas, wewenang, tanggung jawab, dan persyaratan jabatan.", eps: [
+                        { id: "Kriteria 1.2.1", title: "Struktur organisasi ditetapkan dengan kejelasan tugas, wewenang, tanggung responsibility, dan persyaratan jabatan.", eps: [
                             "a) Kepala Puskesmas menetapkan penanggung jawab dan koordinator pelayanan. (R)",
                             "b) Kode etik perilaku ditetapkan, dievaluasi, dan ditindaklanjuti. (R, D, W)",
                             "c) Kebijakan dan prosedur pendelegasian wewenang manajerial ditetapkan dengan jelas. (R, D)"
@@ -840,7 +883,9 @@ function doOptions(e) {
         const rdowsDetailMap = {
             'R': 'Dokumen Regulasi: SK, Pedoman, Panduan, SOP, atau KAK.',
             'D': 'Dokumen Bukti: Laporan, rekam medis, notulensi, absensi, survei, foto, dsb.',
-            'O': 'Observasi: Dokumen/Foto hasil observasi fisik pada sarana prasarana atau pelaksanaan prosedur.'
+            'O': 'Observasi: Dokumen/Foto hasil observasi fisik pada sarana prasarana atau pelaksanaan prosedur.',
+            'W': 'Wawancara: Catatan/Lembar evaluasi hasil wawancara (Khusus Pendamping/Dinkes).',
+            'S': 'Simulasi: Bukti evaluasi pelaksanaan simulasi/peragaan (Khusus Pendamping/Dinkes).'
         };
 
         const fileRegistry = {};
@@ -850,7 +895,9 @@ function doOptions(e) {
             const styles = {
                 'R': 'bg-blue-100 text-blue-700 border-blue-200',
                 'D': 'bg-green-100 text-green-700 border-green-200',
-                'O': 'bg-amber-100 text-amber-700 border-amber-200'
+                'O': 'bg-amber-100 text-amber-700 border-amber-200',
+                'W': 'bg-purple-100 text-purple-700 border-purple-200',
+                'S': 'bg-pink-100 text-pink-700 border-pink-200'
             };
             return `<span class="${styles[type] || 'bg-slate-100'} px-2 py-0.5 rounded font-bold text-xs border inline-block min-w-[24px] text-center">${type}</span>`;
         }
@@ -859,9 +906,19 @@ function doOptions(e) {
             const container = document.getElementById('explorer-content');
             container.innerHTML = '';
             
+            const isDinkes = currentKategori === 'Dinkes';
+            const infoBox = document.getElementById('infoTextRole');
+            
+            if(infoBox) {
+                if(isDinkes) {
+                    infoBox.innerHTML = `Anda masuk sebagai <b>Dinas Kesehatan (Pendamping)</b>. Anda dapat mengunggah catatan evaluasi untuk seluruh elemen <b>(R, D, O, W, S)</b>. Apapun nama asli file Anda, sistem akan membuangnya dan menamai ulang otomatis menjadi:<br><b class="text-teal-900 bg-teal-100/50 px-2 py-0.5 rounded font-mono text-xs mt-1 inline-block border border-teal-200">EP [Kode] - R/D/O/W/S (Kategori) - Konsep Judul Baku.pdf</b>`;
+                } else {
+                    infoBox.innerHTML = `Sistem difilter untuk fasyankes: mengunggah dokumen bukti <b>(R, D, O)</b>. Wawancara (W) dan Simulasi (S) tidak memerlukan dokumen fasyankes. Apapun nama asli file Anda, sistem akan membuangnya dan menamai ulang secara otomatis menjadi judul baku:<br><b class="text-teal-900 bg-teal-100/50 px-2 py-0.5 rounded font-mono text-xs mt-1 inline-block border border-teal-200">EP [Kode] - R/D/O (Jenis Bukti) - Konsep Judul Baku.pdf</b>`;
+                }
+            }
+            
             Object.entries(rawData).forEach(([babKey, babData]) => {
                 const babWrapper = document.createElement('div');
-                
                 const babHeader = document.createElement('div');
                 babHeader.className = `p-4 bg-${babData.color}-50 border-b border-slate-200 text-lg font-bold text-${babData.color}-800 flex items-center gap-2`;
                 babHeader.innerHTML = `<span>${babData.icon}</span> ${babData.title}`;
@@ -872,13 +929,10 @@ function doOptions(e) {
                 babData.standarList.forEach(standard => {
                     const stdAccordion = document.createElement('div');
                     stdAccordion.className = 'border-b border-slate-200 last:border-b-0 bg-white';
-
+                    
                     const stdHeader = document.createElement('button');
                     stdHeader.className = 'w-full flex justify-between items-center p-4 hover:bg-slate-50 transition-colors focus:outline-none group';
-                    stdHeader.innerHTML = `
-                        <h3 class="font-semibold text-slate-800 text-left group-hover:text-teal-600 transition-colors">${standard.id}: ${standard.title}</h3>
-                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300"></i>
-                    `;
+                    stdHeader.innerHTML = `<h3 class="font-semibold text-slate-800 text-left group-hover:text-teal-600 transition-colors">${standard.id}: ${standard.title}</h3><i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300"></i>`;
                     
                     const stdContent = document.createElement('div');
                     stdContent.className = 'accordion-content bg-slate-50/50 px-4 pb-0';
@@ -902,7 +956,6 @@ function doOptions(e) {
                             const epId = matchId[1];
                             let fullText = matchId[2];
                             
-                            // Ekstrak RDOWS
                             const methodsRegex = /\([\sRDOWS,]+\)\s*$/i;
                             const match = fullText.match(methodsRegex);
                             let cleanText = fullText;
@@ -912,24 +965,22 @@ function doOptions(e) {
                                 cleanText = fullText.replace(methodsRegex, '').trim();
                                 const typesString = match[0].toUpperCase();
                                 
-                                // FILTER KHUSUS FASYANKES HANYA R, D, O YANG DIMASUKKAN
-                                ['R', 'D', 'O'].forEach(t => {
+                                const allowedTypes = isDinkes ? ['R', 'D', 'O', 'W', 'S'] : ['R', 'D', 'O'];
+                                allowedTypes.forEach(t => {
                                     if(typesString.includes(t)) rdowsTypes.push(t);
                                 });
                             }
 
-                            // Mengamankan teks untuk argumen fungsi JS
                             const safeCleanText = cleanText.replace(/['"\\]/g, ''); 
 
                             const epBlock = document.createElement('div');
                             epBlock.className = 'border-l-4 border-l-teal-500 pl-4 py-1';
                             
-                            // Jika EP tersebut tidak memiliki R, D, atau O sama sekali (Contoh: Hanya W/S)
                             if(rdowsTypes.length === 0) {
                                 epBlock.classList.replace('border-l-teal-500', 'border-l-slate-300');
                                 epBlock.innerHTML = `
                                     <p class="font-medium text-slate-600 text-sm leading-relaxed"><span class="text-slate-500 font-bold bg-slate-100 px-1.5 py-0.5 rounded mr-1">EP ${epId})</span> ${cleanText}</p>
-                                    <p class="text-xs text-amber-600 font-medium italic mt-2.5 bg-amber-50 inline-block px-2 py-1 rounded border border-amber-100"><i class="fa-solid fa-circle-info"></i> EP ini hanya dinilai melalui Wawancara/Simulasi (Tidak memerlukan unggahan dokumen).</p>
+                                    <p class="text-xs text-amber-600 font-medium italic mt-2.5 bg-amber-50 inline-block px-2 py-1 rounded border border-amber-100"><i class="fa-solid fa-circle-info"></i> EP ini hanya dinilai melalui Wawancara/Simulasi (Tidak memerlukan unggahan dokumen fasyankes).</p>
                                 `;
                             } else {
                                 let rdowsHtml = '';
@@ -942,11 +993,7 @@ function doOptions(e) {
                                                 <div class="mt-0.5">${getRdowsBadge(type)}</div>
                                                 <p class="text-sm text-slate-600 leading-relaxed">${rdowsDetailMap[type]}</p>
                                             </div>
-                                            
-                                            <!-- Container File -->
                                             <div id="fileList_${slotId}" class="flex flex-col gap-2 mb-3 pl-9 empty:hidden"></div>
-    
-                                            <!-- Tombol Upload -->
                                             <div class="flex flex-wrap items-center gap-2 pl-9">
                                                 <button id="btnUpload_${slotId}" onclick="triggerUpload('${safeBabTitle}', '${standard.id}', '${kriteria.id}', '${epId}', '${type}', this, '${slotId}', '${safeCleanText}')" 
                                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-md text-xs font-semibold hover:bg-slate-50 hover:text-teal-600 transition shadow-sm">
@@ -957,10 +1004,7 @@ function doOptions(e) {
                                     `;
                                 });
     
-                                epBlock.innerHTML = `
-                                    <p class="font-medium text-slate-800 text-sm leading-relaxed"><span class="text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded mr-1">EP ${epId})</span> ${cleanText}</p>
-                                    ${rdowsHtml}
-                                `;
+                                epBlock.innerHTML = `<p class="font-medium text-slate-800 text-sm leading-relaxed"><span class="text-teal-700 font-bold bg-teal-50 px-1.5 py-0.5 rounded mr-1">EP ${epId})</span> ${cleanText}</p>${rdowsHtml}`;
                             }
 
                             kritBody.appendChild(epBlock);
@@ -975,7 +1019,6 @@ function doOptions(e) {
                         stdContent.firstElementChild.style.marginTop = '1rem';
                     }
 
-                    // Logika Akordion Standar
                     stdHeader.addEventListener('click', () => {
                         const icon = stdHeader.querySelector('i');
                         const isOpen = stdContent.classList.contains('open');
@@ -1007,80 +1050,105 @@ function doOptions(e) {
             const msg = document.getElementById('toastMessage');
 
             msg.textContent = message;
-
-            toast.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 z-50 flex items-center gap-3 font-medium text-sm max-w-sm ${
-                type === 'success' ? 'bg-emerald-600 text-white' :
-                type === 'error' ? 'bg-red-500 text-white' :
-                'bg-blue-600 text-white'
-            }`;
-
-            icon.className = `text-lg ${
-                type === 'success' ? 'fa-solid fa-check-circle' :
-                type === 'error' ? 'fa-solid fa-triangle-exclamation' :
-                'fa-solid fa-info-circle spinner'
-            }`;
-
+            toast.className = `fixed bottom-6 right-6 px-5 py-3 rounded-xl shadow-2xl transform transition-all duration-300 z-50 flex items-center gap-3 font-medium text-sm max-w-sm text-white ${type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-500' : 'bg-blue-600'}`;
+            icon.className = `text-lg ${type === 'success' ? 'fa-solid fa-check-circle' : type === 'error' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-info-circle spinner'}`;
             toast.classList.remove('translate-y-24', 'opacity-0');
 
             if (type !== 'loading') {
-                setTimeout(() => {
-                    toast.classList.add('translate-y-24', 'opacity-0');
-                }, 3500);
+                setTimeout(() => { toast.classList.add('translate-y-24', 'opacity-0'); }, 3500);
             }
         }
 
-        function hideToast() {
-            document.getElementById('toast').classList.add('translate-y-24', 'opacity-0');
-        }
+        function hideToast() { document.getElementById('toast').classList.add('translate-y-24', 'opacity-0'); }
 
         function openSetupModal() {
             document.getElementById('gasUrlInput').value = GAS_WEB_APP_URL;
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            setTimeout(() => {
-                modal.classList.remove('opacity-0');
-                modalContent.classList.remove('scale-95');
-            }, 10);
+            modal.classList.remove('hidden'); modal.classList.add('flex');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modalContent.classList.remove('scale-95'); }, 10);
         }
 
         function closeSetupModal() {
-            modal.classList.add('opacity-0');
-            modalContent.classList.add('scale-95');
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }, 300);
+            modal.classList.add('opacity-0'); modalContent.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 300);
         }
 
-        function saveGasUrl() {
-            const url = document.getElementById('gasUrlInput').value.trim();
-            if(url && !url.startsWith('https://script.google.com/')) {
-                showToast('URL tidak valid. Harus berawalan https://script.google.com/', 'error');
+        async function saveGasUrl(event) {
+            if (event) event.preventDefault();
+            
+            const urlInput = document.getElementById('gasUrlInput').value.trim();
+            const btn = document.getElementById('btnSaveGas');
+            
+            // Validasi format URL
+            if (urlInput && !urlInput.startsWith('https://script.google.com/')) {
+                showToast('URL tidak valid. Pastikan diawali dengan https://script.google.com/', 'error');
                 return;
             }
-            GAS_WEB_APP_URL = url;
-            localStorage.setItem(STORAGE_KEY_GAS, url);
-            showToast('URL Google Apps Script berhasil disimpan!');
-            closeSetupModal();
+
+            // Tampilkan animasi loading pada tombol
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch spinner"></i> Menyimpan...';
+            btn.disabled = true;
+
+            try {
+                // Menyiapkan paket data (payload) untuk dikirim ke Excel
+                const payload = {
+                    action: 'save_drive_url',
+                    email: currentUserEmail,
+                    driveUrl: urlInput
+                };
+
+                let isCanvasPreview = false;
+                try { isCanvasPreview = window.self !== window.top || window.location.hostname.includes("google") || window.location.hostname.includes("sandbox"); } catch(e) { isCanvasPreview = true; }
+
+                // Bypass jika hanya mencoba di Canvas Gemini
+                if (isCanvasPreview && (!currentUserEmail || currentUserEmail.includes('demo'))) {
+                    GAS_WEB_APP_URL = urlInput;
+                    sessionStorage.setItem('gasUrl', urlInput);
+                    showToast('SIMULASI CANVAS: URL Drive berhasil disimpan permanen!', 'success');
+                    closeSetupModal();
+                } else {
+                    // Mengirim data ke Database Pusat menggunakan fetch
+                    const response = await fetch(CENTRAL_GAS_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        // Perbarui variabel sistem
+                        GAS_WEB_APP_URL = urlInput;
+                        sessionStorage.setItem('gasUrl', urlInput); 
+                        
+                        showToast('Berhasil! URL Drive Anda telah disimpan ke Database Pusat.', 'success');
+                        closeSetupModal();
+                    } else {
+                        showToast('Gagal menyimpan: ' + result.message, 'error');
+                    }
+                }
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                showToast('Gagal terhubung ke database pusat.', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
 
         function copyScriptCode() {
             const code = document.getElementById('gasScriptCode').innerText;
             const tempTextArea = document.createElement("textarea");
-            tempTextArea.value = code;
-            document.body.appendChild(tempTextArea);
+            tempTextArea.value = code; document.body.appendChild(tempTextArea);
             tempTextArea.select();
-
-            try {
-                document.execCommand('copy');
-                showToast('Kode Script disalin ke clipboard');
-            } catch (err) {
-                showToast('Gagal menyalin kode', 'error');
-            }
+            try { document.execCommand('copy'); showToast('Kode Script disalin ke clipboard'); } 
+            catch (err) { showToast('Gagal menyalin kode', 'error'); }
             document.body.removeChild(tempTextArea);
         }
 
         function triggerUpload(babTitle, standardId, criteriaId, epId, rdowsType, btnElement, slotId, epText) {
+            if (!GAS_WEB_APP_URL) {
+                showToast('Anda belum menghubungkan aplikasi dengan Akun Drive Pribadi Anda. Silakan klik "Setup Drive".', 'error'); return;
+            }
             currentUploadTarget = { babTitle, standardId, criteriaId, epId, rdowsType, buttonElement: btnElement, slotId: slotId, epText: epText };
             document.getElementById('hiddenFileInput').click();
         }
@@ -1088,38 +1156,40 @@ function doOptions(e) {
         document.getElementById('hiddenFileInput').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (!file) return;
-            event.target.value = ''; // Reset
+            event.target.value = ''; 
             processFileUpload(file);
         });
 
         function processFileUpload(file) {
             const target = currentUploadTarget;
-            const maxSize = 10 * 1024 * 1024; // Limit 10MB
-            
-            if (file.size > maxSize) {
-                showToast('Ukuran file terlalu besar (Maks 10MB)', 'error');
-                return;
-            }
+            if (file.size > 10 * 1024 * 1024) { showToast('Ukuran file terlalu besar (Maks 10MB)', 'error'); return; }
 
-            // ====================================================
-            // LOGIKA PENAMAAN CERDAS & KATEGORISASI (Puskesmas)
-            // ====================================================
             const epId = target.epId;
             const type = target.rdowsType;
             const epText = target.epText || '';
 
-            // 1. Ekstrak Konsep EP (Tidak potong tengah kata)
-            let cleanTextForConcept = epText.replace(/^[^a-zA-Z0-9]+/, ''); 
-            const words = cleanTextForConcept.split(' ');
-            let epConcept = '';
-            for (let i = 0; i < words.length; i++) {
-                if ((epConcept + words[i]).length > 40) break;
-                epConcept += (epConcept ? ' ' : '') + words[i];
+            let cleanText = epText.replace(/^[^a-zA-Z0-9]+/, '').trim().replace(/\s*\(.*?\)\s*/g, ''); 
+            const cutOffWords = [' yang ', ' untuk ', ' sesuai ', ' berdasarkan ', ' melibatkan ', ' dengan ', ' dalam ', ' pada ', ' sebagai ', ' terhadap ', ' melalui ', ' secara '];
+            let logicalConcept = cleanText;
+            let lowestIdx = logicalConcept.length;
+            
+            cutOffWords.forEach(word => {
+                let idx = logicalConcept.toLowerCase().indexOf(word);
+                if (idx !== -1 && idx < lowestIdx && idx > 15) lowestIdx = idx;
+            });
+            logicalConcept = logicalConcept.substring(0, lowestIdx).trim().replace(/[,.;:]+$/, ''); 
+            
+            const trailingVerbs = ['ditetapkan', 'disusun', 'dilaksanakan', 'dilakukan', 'dievaluasi', 'ditindaklanjuti', 'dikoordinasikan', 'disediakan', 'tersedia', 'ada'];
+            let words = logicalConcept.split(/\s+/);
+            if (words.length > 0) {
+                if (trailingVerbs.includes(words[words.length - 1].toLowerCase())) {
+                    words.pop(); 
+                    logicalConcept = words.join(' ');
+                }
             }
-            epConcept = epConcept.replace(/[,.;:()]+$/, ''); 
-            epConcept = epConcept.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            if (words.length > 8) logicalConcept = words.slice(0, 8).join(' ');
+            let epConcept = logicalConcept.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
-            // 2. Deteksi Cerdas Kategori Dokumen dari Teks
             let category = '';
             let textToCheck = epText.toLowerCase();
 
@@ -1133,59 +1203,47 @@ function doOptions(e) {
                 if (textToCheck.includes('rekam medis') || textToCheck.includes('rekam medik')) category = '(Rekam Medis)';
                 else if (textToCheck.includes('laporan') || textToCheck.includes('evaluasi') || textToCheck.includes('analisis')) category = '(Laporan)';
                 else if (textToCheck.includes('bukti') || textToCheck.includes('pelaksanaan')) category = '(Bukti Pelaksanaan)';
-                else category = '(Dokumen)';
-            } else if (type === 'O') {
-                category = '(Observasi)';
-            }
+                else category = '(Dokumen Bukti)';
+            } else if (type === 'O') { category = '(Observasi)'; } 
+            else if (type === 'W') { category = '(Wawancara)'; } 
+            else if (type === 'S') { category = '(Simulasi)'; }
 
-            // 3. Ambil Ekstensi Saja (NAMA ASLI DIBUANG)
             const lastDotIndex = file.name.lastIndexOf('.');
             const ext = lastDotIndex !== -1 ? file.name.substring(lastDotIndex) : '';
-
-            // 4. Format Akhir Penamaan
-            // Contoh Hasil: EP a - R (SK) - Visi Misi Tujuan Dan Tata.pdf
             const formattedFileName = `EP ${epId} - ${type} ${category} - ${epConcept}${ext}`;
-            // ====================================================
 
             const originalBtnHtml = target.buttonElement.innerHTML;
             target.buttonElement.innerHTML = '<i class="fa-solid fa-circle-notch spinner text-teal-500"></i> Mengunggah...';
             target.buttonElement.disabled = true;
-            
-            showToast('Sedang memproses dan mengunggah ke Drive...', 'loading');
+            showToast('Sedang memproses dan mengunggah ke Drive Pribadi Anda...', 'loading');
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 const base64Data = e.target.result;
-                
-                // Hierarki Folder di Drive: Bab / Standar / Kriteria / EP
                 const folderPath = `Bukti_Akreditasi_Puskesmas/${target.babTitle}/${target.standardId}/${target.criteriaId}/EP_${target.epId}`;
 
                 const payload = {
                     fileName: formattedFileName, 
                     mimeType: file.type,
                     fileBase64: base64Data,
-                    folderPath: folderPath
+                    folderPath: folderPath,
+                    userEmail: currentUserEmail
                 };
 
-                // SIMULASI (Bila URL GAS Kosong)
-                if (!GAS_WEB_APP_URL || GAS_WEB_APP_URL.trim() === '') {
+                if(!GAS_WEB_APP_URL || GAS_WEB_APP_URL === '') {
                     setTimeout(() => {
                         hideToast();
-                        const localUrl = URL.createObjectURL(file);
-                        const fileObj = { name: formattedFileName, url: localUrl };
-                        
-                        saveFileRegistry(target.slotId, fileObj);
-                        
                         target.buttonElement.innerHTML = originalBtnHtml;
                         target.buttonElement.disabled = false;
                         
+                        const fileObj = { name: formattedFileName, url: URL.createObjectURL(file) };
+                        saveFileRegistry(target.slotId, fileObj);
                         updateUIAfterUpload(target.slotId, fileObj);
-                        showToast('SIMULASI: File disimpan lokal. Setup Drive untuk unggah ke cloud.', 'success');
+                        showToast(`Simulasi Berhasil. Dinamai: ${formattedFileName}`, 'success');
                     }, 1500);
                     return;
                 }
 
-                // PRODUKSI: Kirim ke Google Apps Script
                 fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify(payload)
@@ -1213,14 +1271,11 @@ function doOptions(e) {
                     showToast('Terjadi kesalahan koneksi ke Google Drive.', 'error');
                 });
             };
-            
             reader.readAsDataURL(file);
         }
 
         function saveFileRegistry(slotId, fileObj) {
-            if (!fileRegistry[slotId]) {
-                fileRegistry[slotId] = []; 
-            }
+            if (!fileRegistry[slotId]) fileRegistry[slotId] = []; 
             fileRegistry[slotId].push(fileObj); 
         }
 
@@ -1229,37 +1284,14 @@ function doOptions(e) {
             const uploadBtn = document.getElementById(`btnUpload_${slotId}`);
             const btnText = uploadBtn.querySelector('.btn-text');
             
-            if (btnText) {
-                btnText.textContent = "Tambah Bukti";
-            }
+            if (btnText) btnText.textContent = "Tambah Bukti";
             
             const fileLink = document.createElement('a');
-            fileLink.href = fileObj.url;
-            fileLink.target = "_blank";
-            fileLink.download = fileObj.name;
+            fileLink.href = fileObj.url; fileLink.target = "_blank"; fileLink.download = fileObj.name;
             fileLink.className = "inline-flex items-center justify-between gap-3 px-3 py-2 bg-teal-50 border border-teal-200 text-teal-700 rounded-md text-xs hover:bg-teal-100 transition shadow-sm w-fit max-w-full group";
-            
-            fileLink.innerHTML = `
-                <div class="flex items-center gap-2 overflow-hidden">
-                    <i class="fa-brands fa-google-drive text-teal-600 shrink-0"></i>
-                    <span class="truncate font-medium group-hover:underline" title="${fileObj.name}">${fileObj.name}</span>
-                </div>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-70 shrink-0 group-hover:opacity-100"></i>
-            `;
-            
+            fileLink.innerHTML = `<div class="flex items-center gap-2 overflow-hidden"><i class="fa-brands fa-google-drive text-teal-600 shrink-0"></i><span class="truncate font-medium group-hover:underline" title="${fileObj.name}">${fileObj.name}</span></div><i class="fa-solid fa-arrow-up-right-from-square text-[10px] opacity-70 shrink-0 group-hover:opacity-100"></i>`;
             fileListContainer.appendChild(fileLink);
         }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            renderExplorerContent();
-            
-            if(!GAS_WEB_APP_URL) {
-                setTimeout(() => {
-                    showToast('Klik "Setup Google Drive" untuk menyambungkan dengan cloud Anda.', 'loading');
-                    setTimeout(hideToast, 4000);
-                }, 1000);
-            }
-        });
     </script>
 </body>
 </html>
