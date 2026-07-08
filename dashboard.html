@@ -116,6 +116,10 @@
                             <a href="https://gemini.google.com/share/22db3c822a00" target="_blank" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition-all group">
                                 <i class="fa-solid fa-sitemap w-4 text-center"></i> Risiko Program Terintegrasi <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto opacity-0 group-hover:opacity-100"></i>
                             </a>
+                            <!-- FMEA Ditambahkan di sini -->
+                            <a href="https://share.gemini.google/uBiDOOFVLPJE" target="_blank" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition-all group">
+                                <i class="fa-solid fa-diagram-project w-4 text-center"></i> FMEA <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto opacity-0 group-hover:opacity-100"></i>
+                            </a>
                         </div>
                     </div>
 
@@ -204,6 +208,10 @@
                             </a>
                             <a href="https://gemini.google.com/share/22db3c822a00" target="_blank" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition-all group">
                                 <i class="fa-solid fa-sitemap w-4 text-center"></i> Risiko Program Terintegrasi <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto opacity-0 group-hover:opacity-100"></i>
+                            </a>
+                            <!-- FMEA Ditambahkan di sini -->
+                            <a href="https://share.gemini.google/uBiDOOFVLPJE" target="_blank" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition-all group">
+                                <i class="fa-solid fa-diagram-project w-4 text-center"></i> FMEA <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto opacity-0 group-hover:opacity-100"></i>
                             </a>
                         </div>
                     </div>
@@ -297,6 +305,10 @@
                             </a>
                             <a href="https://gemini.google.com/share/22db3c822a00" target="_blank" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition-all group">
                                 <i class="fa-solid fa-sitemap w-4 text-center"></i> Risiko Program Terintegrasi <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto opacity-0 group-hover:opacity-100"></i>
+                            </a>
+                            <!-- FMEA Ditambahkan di sini -->
+                            <a href="https://share.gemini.google/uBiDOOFVLPJE" target="_blank" class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-skyblue transition-all group">
+                                <i class="fa-solid fa-diagram-project w-4 text-center"></i> FMEA <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-auto opacity-0 group-hover:opacity-100"></i>
                             </a>
                         </div>
                     </div>
@@ -417,6 +429,16 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', () => {
+            // --- MODIFIKASI DATA TIRUAN (MOCK DATA) UNTUK PREVIEW KANVAS ---
+            // Karena tidak ada proses login yang sebenarnya berjalan di preview ini,
+            // baris-baris ini akan "mengelabui" skrip agar mengira Anda sudah login
+            if (!sessionStorage.getItem('isLoggedIn')) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('kategori', 'Dinkes'); // Tampilkan semua hak akses
+                sessionStorage.setItem('unitKerja', 'Dinkes Provinsi (Mode Pratinjau)');
+            }
+            // ---------------------------------------------------------------
+
             // 1. Ambil data sesi NYATA dari hasil login (index.html)
             const kategoriFasyankes = sessionStorage.getItem('kategori'); 
             const unitKerja = sessionStorage.getItem('unitKerja');
